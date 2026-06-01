@@ -1,0 +1,28 @@
+[package]
+name = "aml-flash-tool"
+version = "1.0.1"
+edition = "2024"
+description = "Amlogic USB Burning Tool GUI - Flash firmware to Amlogic Devices"
+maintainer = "Anton"
+copyright = "2026, Anton"
+
+[dependencies]
+gtk4 = { version = "0.9", features = ["v4_12"] }
+libadwaita = { version = "0.7", features = ["v1_5"] }
+tokio = { version = "1", features = ["full"] }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+glib = "0.20"
+chrono = "0.4"
+
+[build-dependencies]
+glib-build-tools = "0.20"
+
+[package.metadata.deb]
+assets = [
+    ["target/release/aml-flash-tool", "usr/bin/", "755"],
+    ["assets/aml-flash-tool.desktop", "usr/share/applications/", "644"],
+    ["assets/aml-flash-tool.png", "usr/share/icons/hicolor/scalable/apps/", "644"],
+    # Добавляем udev-правило:
+    ["assets/99-amlogic-flash.rules", "lib/udev/rules.d/", "644"]
+]
