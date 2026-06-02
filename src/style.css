@@ -2,7 +2,7 @@
 .statusbar {
     background-color: shade(@theme_bg_color, 0.92);
     border-top: 1px solid @borders;
-    padding: 3px 8px;
+    padding: 3px 10px;
 }
 
 .statusbar label {
@@ -14,7 +14,7 @@
 .imagebar {
     background-color: shade(@theme_bg_color, 0.97);
     border-bottom: 1px solid @borders;
-    padding: 5px 10px;
+    padding: 6px 12px;
 }
 
 .imagebar label {
@@ -79,27 +79,32 @@ columnview progressbar progress {
     font-size: 0.85em;
     background-color: shade(@theme_bg_color, 0.97);
     border-radius: 4px;
-    padding: 6px;
+    padding: 8px;
 }
 
 /* ── ColumnView headers ── */
 columnview columnheader button {
     font-weight: 600;
     font-size: 0.85em;
-    padding: 5px 10px;
+    padding: 6px 12px;
     background-color: shade(@theme_bg_color, 0.95);
     border-bottom: 2px solid alpha(@theme_selected_bg_color, 0.3);
+    transition: background-color 150ms ease;
 }
 
 columnview columnheader button:hover {
-    background-color: shade(@theme_bg_color, 0.9);
+    background-color: shade(@theme_bg_color, 0.88);
 }
 
 /* ── ColumnView rows ── */
 columnview row {
-    border-bottom: 1px solid alpha(@borders, 0.4);
-    padding: 2px 0;
-    transition: background-color 100ms ease;
+    border-bottom: 1px solid alpha(@borders, 0.3);
+    padding: 3px 0;
+    transition: background-color 120ms ease;
+}
+
+columnview row:nth-child(even) {
+    background-color: alpha(@theme_bg_color, 0.3);
 }
 
 columnview row:selected {
@@ -111,7 +116,7 @@ columnview row:selected label {
 }
 
 columnview row:hover {
-    background-color: alpha(@theme_bg_color, 0.4);
+    background-color: alpha(@theme_selected_bg_color, 0.08);
 }
 
 /* Device row status text styling */
@@ -122,15 +127,21 @@ columnview row label {
 /* ── Buttons ── */
 button.suggested-action {
     font-weight: 600;
-    border-radius: 5px;
-    padding: 5px 18px;
-    min-width: 80px;
+    border-radius: 6px;
+    padding: 6px 20px;
+    min-width: 90px;
+    transition: all 150ms ease;
+}
+
+button.suggested-action:hover {
+    box-shadow: 0 1px 4px alpha(@theme_selected_bg_color, 0.3);
 }
 
 button:not(.suggested-action):not(.image-button):not(.titlebutton) {
-    border-radius: 5px;
-    padding: 5px 18px;
-    min-width: 80px;
+    border-radius: 6px;
+    padding: 6px 20px;
+    min-width: 90px;
+    transition: all 120ms ease;
 }
 
 /* ── Switches ── */
@@ -140,84 +151,95 @@ switch {
 
 /* ── DropDown ── */
 dropdown {
-    border-radius: 5px;
-    min-width: 140px;
+    border-radius: 6px;
+    min-width: 150px;
 }
 
 /* ── Status Page ── */
 statuspage {
-    padding: 50px;
+    padding: 60px 50px;
 }
 
 statuspage label.title {
-    font-size: 1.3em;
+    font-size: 1.4em;
     font-weight: 600;
-    margin-top: 14px;
+    margin-top: 16px;
 }
 
 statuspage label.description {
     font-size: 0.95em;
-    color: alpha(@theme_fg_color, 0.65);
-    margin-top: 4px;
+    color: alpha(@theme_fg_color, 0.6);
+    margin-top: 6px;
 }
 
 /* ── Separators ── */
 separator {
-    margin: 3px 0;
+    margin: 4px 0;
 }
 
 /* ── ScrolledWindow ── */
 scrolledwindow {
-    border-radius: 4px;
+    border-radius: 6px;
 }
 
 scrolledwindow.frame {
     border: 1px solid @borders;
 }
 
-/* ── PreferencesPage groups ── */
+/* ── Config panel (right side) ── */
+preferencespage {
+    background: shade(@theme_base_color, 0.98);
+}
+
 preferencespage > scrolledwindow > viewport > clamp > box {
     margin: 0;
-    padding: 0;
+    padding: 8px 4px;
 }
 
 preferencesgroup {
-    margin-bottom: 10px;
+    background: @theme_base_color;
+    margin-bottom: 8px;
 }
 
 preferencesgroup > box > label {
     font-weight: 600;
-    font-size: 0.85em;
-    padding: 6px 10px;
-    color: alpha(@theme_fg_color, 0.7);
+    font-size: 0.8em;
+    padding: 8px 12px 4px;
+    color: alpha(@theme_fg_color, 0.6);
     text-transform: uppercase;
-    letter-spacing: 0.5px;
+    letter-spacing: 0.8px;
 }
 
 /* ── ActionRow ── */
 actionrow {
     border-radius: 6px;
-    margin: 1px 6px;
-    padding: 3px 8px;
+    margin: 0 4px;
+    padding: 4px 10px;
+    transition: background-color 120ms ease;
 }
 
 actionrow:hover {
-    background-color: alpha(@theme_bg_color, 0.5);
+    background-color: alpha(@theme_selected_bg_color, 0.06);
 }
 
 actionrow:first-child {
-    margin-top: 3px;
+    margin-top: 2px;
 }
 
 actionrow:last-child {
-    margin-bottom: 3px;
+    margin-bottom: 4px;
 }
 
 /* ── Paned handle ── */
 paned > separator {
-    min-width: 3px;
-    min-height: 3px;
+    min-width: 4px;
+    min-height: 4px;
     background-color: @borders;
+    transition: background-color 150ms ease;
+}
+
+paned > separator:hover {
+    background-color: @theme_selected_bg_color;
 }
 
 /* ── Burning percentage label ── */
@@ -225,16 +247,17 @@ paned > separator {
     font-weight: 700;
     font-size: 0.95em;
     color: @theme_selected_bg_color;
-    margin: 0 2px;
+    margin: 0 4px;
 }
 
 /* ── Toolbar header ── */
 headerbar {
-    padding: 2px 6px;
+    padding: 2px 8px;
+    border-bottom: 1px solid @borders;
 }
 
 headerbar button {
-    border-radius: 5px;
+    border-radius: 6px;
 }
 
 /* ── Window title buttons (minimize, maximize, close) ── */
@@ -268,10 +291,11 @@ headerbar windowcontrols {
     padding: 0;
 }
 
-.file-menu-button {
-    padding: 1px 6px;
-    font-size: 0.85em;
+.header-menu-button {
+    padding: 1px 8px;
+    font-size: 0.82em;
     font-weight: 500;
+    min-height: 0;
 }
 
 /* ── Menu popover styling ── */
@@ -280,8 +304,8 @@ headerbar windowcontrols {
 }
 
 modelbutton {
-    padding: 2px 10px;
-    min-height: 22px;
+    padding: 4px 12px;
+    min-height: 26px;
 }
 
 /* ── About dialog ── */
@@ -291,5 +315,60 @@ dialog .dialog-vbox {
 
 /* ── Bottom bar Start/Stop spacing ── */
 .imagebar > button {
-    margin-left: 4px;
+    margin-left: 6px;
+}
+
+/* ── Log area container ── */
+
+.log-view {
+    border: 1px solid alpha(@borders, 0.3);
+}
+
+/* ── Device list empty state transition ── */
+stack {
+    transition: opacity 200ms ease;
+}
+
+/* ── Tooltip-style labels ── */
+.label-dim {
+    color: alpha(@theme_fg_color, 0.55);
+    font-size: 0.85em;
+}
+
+/* ── Scrollbar styling ── */
+scrollbar {
+    background: none;
+    border: none;
+}
+
+scrollbar trough {
+    border-radius: 4px;
+    min-width: 6px;
+    min-height: 6px;
+    background: alpha(@theme_fg_color, 0.08);
+}
+
+scrollbar slider {
+    border-radius: 3px;
+    min-width: 6px;
+    min-height: 6px;
+    background: alpha(@theme_fg_color, 0.25);
+    transition: background-color 150ms ease;
+}
+
+scrollbar slider:hover {
+    background: alpha(@theme_fg_color, 0.4);
+}
+
+scrollbar slider:active {
+    background: @theme_selected_bg_color;
+}
+
+/* ── Hide scrollbar in device list column view ── */
+columnview scrollbar.vertical {
+    width: 0;
+    min-width: 0;
+    padding: 0;
+    margin: 0;
+    opacity: 0;
 }

@@ -4,16 +4,20 @@ use libadwaita::prelude::PreferencesPageExt;
 use std::cell::RefCell;
 
 static SOCS: &[&str] = &[
-    "gxl (S905X)",
-    "g12a (S905D2)",
+    "gxl (S905X/S905W/S912)",
+    "g12a (S905D2/S905X2)",
     "g12b (S922X/A311D, uses g12a protocol)",
-    "sm1 (S905D3, uses g12a protocol)",
+    "sm1 (S905D3/S905X3, uses g12a protocol)",
     "t5d (T5D)",
     "t7 (T7)",
     "s4 (S4)",
     "s5 (S5)",
     "axg (A113X)",
     "a1 (A1)",
+    "m8 (S805/A111)",
+    "txlx (T962E)",
+    "sc2 (S905X4)",
+    "t3 (T3)",
 ];
 
 pub struct ConfigPanel {
@@ -31,10 +35,13 @@ impl ConfigPanel {
     pub fn new() -> Self {
         let page = libadwaita::PreferencesPage::new();
 
-        let options_group = libadwaita::PreferencesGroup::new();
+        let options_group = libadwaita::PreferencesGroup::builder()
+            .title("Options")
+            .build();
 
         let erase_flash_row = libadwaita::ActionRow::builder()
             .title("Erase Flash")
+            .subtitle("Wipe all data before burning")
             .build();
         let erase_flash_switch = gtk4::Switch::builder()
             .valign(gtk4::Align::Center)
@@ -45,6 +52,7 @@ impl ConfigPanel {
 
         let erase_boot_row = libadwaita::ActionRow::builder()
             .title("Erase Bootloader")
+            .subtitle("Remove bootloader (may brick device)")
             .build();
         let erase_bootloader_switch = gtk4::Switch::builder()
             .valign(gtk4::Align::Center)
@@ -55,6 +63,7 @@ impl ConfigPanel {
 
         let reset_row = libadwaita::ActionRow::builder()
             .title("Reset After Burn")
+            .subtitle("Automatically reboot device when done")
             .build();
         let reset_switch = gtk4::Switch::builder()
             .valign(gtk4::Align::Center)
@@ -64,7 +73,9 @@ impl ConfigPanel {
         reset_row.set_activatable_widget(Some(&reset_switch));
         options_group.add(&reset_row);
 
-        let advanced_group = libadwaita::PreferencesGroup::new();
+        let advanced_group = libadwaita::PreferencesGroup::builder()
+            .title("SOC Type")
+            .build();
 
         let soc_model = gtk4::StringList::new(&SOCS);
         let soc_dropdown = gtk4::DropDown::builder()

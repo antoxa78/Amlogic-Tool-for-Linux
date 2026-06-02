@@ -95,3 +95,20 @@ where
         },
     );
 }
+
+pub fn show_message_dialog<W>(parent: &W, title: &str, body: &str)
+where
+    W: IsA<gtk4::Window> + IsA<gtk4::Widget>,
+{
+    use libadwaita::prelude::AlertDialogExt;
+    use libadwaita::prelude::AlertDialogExtManual;
+
+    let dialog = libadwaita::AlertDialog::new(Some(title), Some(body));
+    dialog.add_response("ok", "OK");
+    dialog.set_default_response(Some("ok"));
+    dialog.choose(
+        parent,
+        Option::<&gio::Cancellable>::None,
+        |_| {},
+    );
+}
