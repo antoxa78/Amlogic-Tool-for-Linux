@@ -98,7 +98,7 @@ impl MainWindow {
             .menu_model(&file_menu)
             .build();
         file_button.set_direction(gtk4::ArrowType::None);
-        file_button.add_css_class("file-menu-button");
+        file_button.add_css_class("header-menu-button");
         header.pack_start(&file_button);
 
         // --- Advanced Settings menu ---
@@ -107,18 +107,20 @@ impl MainWindow {
         advanced_menu.append(Some("eFuse File..."), Some("win.efuse_file"));
         advanced_menu.append(Some("Save Log..."), Some("win.save_log"));
         advanced_menu.append(Some("Clear Log"), Some("win.clear_log"));
+        advanced_menu.append(Some("Partitions..."), Some("win.partitions"));
+        advanced_menu.append(Some("About"), Some("win.about"));
 
         let advanced_button = gtk4::MenuButton::builder()
             .label("Advanced Settings")
             .menu_model(&advanced_menu)
             .build();
         advanced_button.set_direction(gtk4::ArrowType::None);
+        advanced_button.add_css_class("header-menu-button");
         header.pack_start(&advanced_button);
 
-        // --- Partitions popover ---
         let partition_popover = gtk4::Popover::builder()
-            .autohide(false)
             .build();
+        partition_popover.set_parent(&advanced_button);
         let partition_listbox = gtk4::ListBox::builder()
             .css_classes(["partitions-list"])
             .build();
@@ -137,13 +139,6 @@ impl MainWindow {
             .build());
         partition_popover_box.append(&partition_listbox);
         partition_popover.set_child(Some(&partition_popover_box));
-
-        let partition_menu_btn = gtk4::MenuButton::builder()
-            .label("Partitions")
-            .popover(&partition_popover)
-            .sensitive(false)
-            .build();
-        header.pack_start(&partition_menu_btn);
 
         // --- Window creation ---
         let window = libadwaita::ApplicationWindow::builder()
@@ -174,7 +169,6 @@ impl MainWindow {
         let rebuild_partitions: Rc<dyn Fn(Vec<String>)> = {
             let listbox = partition_listbox.clone();
             let names = partition_names.clone();
-            let pbtn = partition_menu_btn.clone();
             Rc::new(move |parts| {
                 while let Some(child) = listbox.first_child() {
                     listbox.remove(&child);
@@ -187,7 +181,6 @@ impl MainWindow {
                         .build();
                     listbox.append(&check);
                 }
-                pbtn.set_sensitive(true);
             })
         };
 
@@ -214,7 +207,7 @@ impl MainWindow {
 
         let middle_box = gtk4::Paned::builder()
             .orientation(gtk4::Orientation::Horizontal)
-            .position(400)
+            .position(700)
             .build();
         middle_box.set_start_child(Some(&device_stack));
 
@@ -519,6 +512,20 @@ impl MainWindow {
         app_handle.set_accels_for_action("win.start_burn", &["<Ctrl>Return", "<Ctrl>s"]);
         app_handle.set_accels_for_action("win.stop_burn", &["<Shift><Ctrl>Return", "<Shift><Ctrl>s"]);
 
+        // --- Partitions action ---
+        let partition_action = gio::SimpleAction::new("partitions", None);
+        let pa_popover = partition_popover.clone();
+        let pa_names = partition_names.clone();
+        let pa_win = window.clone();
+        partition_action.connect_activate(move |_, _| {
+            if pa_names.borrow().is_empty() {
+                dialogs::show_message_dialog(&pa_win, "No Image Loaded", "Please load a firmware image first before selecting partitions.");
+            } else {
+                pa_popover.popup();
+            }
+        });
+        window.add_action(&partition_action);
+
         // --- About action ---
         let about_action = gio::SimpleAction::new("about", None);
         let about_win = window.clone();
@@ -536,6 +543,8 @@ impl MainWindow {
                 .program_name("Amlogic USB Burning Tool")
                 .version(&version)
                 .comments("Firmware flashing tool for Amlogic devices")
+                .website("https://github.com/antoxa78/Amlogic-Tool-for-Linux")
+                .website_label("GitHub")
                 .license_type(gtk4::License::MitX11)
                 .build();
             if let Ok(pixbuf) = gtk4::gdk_pixbuf::Pixbuf::from_resource(
