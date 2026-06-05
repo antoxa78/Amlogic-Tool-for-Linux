@@ -1,9 +1,9 @@
 [package]
 name = "aml-flash-tool"
-version = "1.0.2"
+version = "1.0.3"
 edition = "2024"
 description = "Amlogic USB Burning Tool GUI - Flash firmware to Amlogic Devices"
-maintainer = "Anton"
+maintainer = "Anton <anton.b1978@gmail.com>"
 copyright = "2026, Anton"
 
 [dependencies]
@@ -19,6 +19,7 @@ chrono = "0.4"
 glib-build-tools = "0.20"
 
 [package.metadata.deb]
+maintainer = "Anton <anton.b1978@gmail.com>"
 assets = [
     ["target/release/aml-flash-tool", "usr/bin/", "755"],
     ["assets/aml-flash-tool.desktop", "usr/share/applications/", "644"],

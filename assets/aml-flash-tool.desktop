@@ -4,6 +4,6 @@ Version=1.0
 Name=AML Flash Tool
 Comment=Amlogic USB Burning Tool GUI - Flash firmware to Amlogic Devices
 Exec=aml-flash-tool %U
-Icon=icon
+Icon=/home/anton/Documents/Programming_Projects/AmlogicLinux/Amlogic-Tool-for-Linux/assets/aml-flash-tool.png
 Terminal=false
 Categories=Development;Engineering;

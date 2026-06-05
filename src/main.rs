@@ -53,10 +53,15 @@ fn main() -> ExitCode {
     app.connect_activate(|app| {
         let mw = app::window::MainWindow::new(app);
 
+        let display = mw.window.display();
+
+        // Register icon resource path so icon_name("aml-flash-tool") resolves
+        gtk4::IconTheme::for_display(&display)
+            .add_resource_path("/com/amlflashtool/gui/icons");
+
         // Load app CSS
         let css = gtk4::CssProvider::new();
         css.load_from_string(include_str!("style.css"));
-        let display = mw.window.display();
         gtk4::style_context_add_provider_for_display(
             &display,
             &css,

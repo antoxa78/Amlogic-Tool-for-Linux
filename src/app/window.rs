@@ -207,7 +207,7 @@ impl MainWindow {
 
         let middle_box = gtk4::Paned::builder()
             .orientation(gtk4::Orientation::Horizontal)
-            .position(700)
+            .position(650)
             .build();
         middle_box.set_start_child(Some(&device_stack));
 
