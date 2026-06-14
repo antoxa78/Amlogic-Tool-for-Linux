@@ -1,0 +1,13 @@
+[Desktop Entry]
+Type=Application
+Version=1.0
+Name=Amlogic USB Burning Tool
+GenericName=Firmware Flash Tool
+Comment=Amlogic USB Burning Tool GUI - Flash firmware to Amlogic devices
+Exec=aml-flash-tool %U
+Icon=aml-flash-tool
+Terminal=false
+Categories=Development;Engineering;
+Keywords=amlogic;flash;firmware;burn;usb;
+StartupNotify=true
+StartupWMClass=aml-flash-tool

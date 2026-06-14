@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<gresources>
+  <gresource prefix="/com/amlflashtool/gui/icons">
+    <file alias="256x256/apps/aml-flash-tool.png">icon.png</file>
+  </gresource>
+</gresources>
