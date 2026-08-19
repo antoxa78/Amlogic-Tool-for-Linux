@@ -4,6 +4,9 @@ use std::path::Path;
 use std::process::{Child, Command, Stdio};
 use std::sync::mpsc::{self, Receiver, TryRecvError};
 
+#[cfg(unix)]
+use std::os::unix::process::CommandExt;
+
 pub enum BurnEvent {
     Line(String, bool),
     Exited(i32),
@@ -24,11 +27,12 @@ impl BurnProcess {
             .ok_or("No image path configured")?;
 
         let (child, stdout, stderr) = if config.adnl {
-            let adnl_script = script_dir.join("tools").join("adnl_flash_tool.sh");
-            let adnl_script_fb = script_dir.join("adnl_flash_tool.sh");
-            let script = if adnl_script.exists() { adnl_script } else { adnl_script_fb };
+            let script = script_dir.join("tools").join("adnl_flash_tool.sh");
             if !script.exists() {
-                return Err(format!("adnl_flash_tool.sh not found: {}", script.display()));
+                return Err(format!(
+                    "adnl_flash_tool.sh not found: {}",
+                    script.display()
+                ));
             }
 
             let mut cmd = Command::new("stdbuf");
@@ -46,6 +50,9 @@ impl BurnProcess {
             }
             cmd.arg(format!("--reset={}", if config.reset { "y" } else { "n" }));
             cmd.arg(format!("--soc={}", config.soc));
+
+            #[cfg(unix)]
+            cmd.process_group(0);
 
             let mut child = cmd
                 .spawn()
@@ -55,9 +62,17 @@ impl BurnProcess {
             let stderr = child.stderr.take().ok_or("Failed to capture stderr")?;
             (child, stdout, stderr)
         } else {
-            let script = script_dir.join("aml_flash_tool.sh");
+            const SUPPORTED_SOCS: &[&str] = &["m8", "gxl", "axg", "txlx", "g12a"];
+            if !SUPPORTED_SOCS.contains(&config.soc.as_str()) {
+                return Err(format!(
+                    "SoC '{}' is not supported by the classic burn engine (supported: m8, gxl, axg, txlx, g12a)",
+                    config.soc
+                ));
+            }
+
+            let script = script_dir.join("tools").join("aml_flash_tool.sh");
             if !script.exists() {
-                return Err(format!("Script not found: {}", script.display()));
+                return Err(format!("aml_flash_tool.sh not found: {}", script.display()));
             }
 
             let mut cmd = Command::new("stdbuf");
@@ -75,6 +90,15 @@ impl BurnProcess {
             }
             cmd.arg(format!("--reset={}", if config.reset { "y" } else { "n" }));
             cmd.arg(format!("--soc={}", config.soc));
+            if let Some(pw) = &config.password_path {
+                cmd.arg(format!("--password={}", pw.display()));
+            }
+            if let Some(ef) = &config.efuse_path {
+                cmd.arg(format!("--efuse-file={}", ef.display()));
+            }
+
+            #[cfg(unix)]
+            cmd.process_group(0);
 
             let mut child = cmd
                 .spawn()
@@ -134,47 +158,43 @@ impl BurnProcess {
     }
 
     pub fn read_line(&mut self) -> Option<BurnEvent> {
-        loop {
-            match self.rx.try_recv() {
-                Ok(event) => return Some(event),
-                Err(TryRecvError::Empty) => {
-                    if !self.done {
-                        match self.child.try_wait() {
-                            Ok(Some(status)) => {
-                                self.done = true;
-                                return Some(BurnEvent::Exited(
-                                    status.code().unwrap_or(-1),
-                                ));
-                            }
-                            Ok(None) => return None,
-                            Err(e) => {
-                                return Some(BurnEvent::Error(e.to_string()));
-                            }
+        match self.rx.try_recv() {
+            Ok(event) => Some(event),
+            Err(TryRecvError::Empty) => {
+                if !self.done {
+                    match self.child.try_wait() {
+                        Ok(Some(status)) => {
+                            self.done = true;
+                            return Some(BurnEvent::Exited(status.code().unwrap_or(-1)));
                         }
+                        Ok(None) => {}
+                        Err(e) => return Some(BurnEvent::Error(e.to_string())),
                     }
-                    return None;
                 }
-                Err(TryRecvError::Disconnected) => {
-                    if !self.done {
-                        match self.child.try_wait() {
-                            Ok(Some(status)) => {
-                                self.done = true;
-                                return Some(BurnEvent::Exited(
-                                    status.code().unwrap_or(-1),
-                                ));
-                            }
-                            _ => {}
-                        }
+                None
+            }
+            Err(TryRecvError::Disconnected) => {
+                if !self.done {
+                    if let Ok(Some(status)) = self.child.try_wait() {
                         self.done = true;
-                        return Some(BurnEvent::Exited(-1));
+                        return Some(BurnEvent::Exited(status.code().unwrap_or(-1)));
                     }
-                    return None;
+                    self.done = true;
+                    return Some(BurnEvent::Exited(-1));
                 }
+                None
             }
         }
     }
 
     pub fn kill(&mut self) {
+        #[cfg(unix)]
+        if self.child.try_wait().ok().flatten().is_none() {
+            let pid = self.child.id() as i32;
+            unsafe {
+                libc::kill(-pid, libc::SIGKILL);
+            }
+        }
         let _ = self.child.kill();
     }
 }

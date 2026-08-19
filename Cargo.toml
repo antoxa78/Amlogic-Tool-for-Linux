@@ -1,6 +1,6 @@
 [package]
 name = "aml-flash-tool"
-version = "1.0.4"
+version = "1.0.5"
 edition = "2021"
 description = "Amlogic USB Burning Tool GUI - Flash firmware to Amlogic Devices"
 authors = ["Anton <anton.b1978@gmail.com>"]
@@ -15,6 +15,7 @@ serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 glib = "0.20"
 chrono = "0.4"
+libc = "0.2"
 
 [build-dependencies]
 glib-build-tools = "0.20"

@@ -110,10 +110,7 @@ impl DeviceListView {
                             }
                             BurnStatus::Burning(pct) => {
                                 pb.set_fraction(*pct);
-                                pb.set_text(Some(&format!(
-                                    "Burning {:.0}%",
-                                    pct * 100.0
-                                )));
+                                pb.set_text(Some(&format!("Burning {:.0}%", pct * 100.0)));
                                 pb.add_css_class("status-burning");
                             }
                             BurnStatus::Success => {
@@ -157,14 +154,20 @@ impl DeviceListView {
                     })));
                 }
             }
+            if device_strings.is_empty() {
+                for d in devices.iter() {
+                    if matches!(d.borrow().status, BurnStatus::Burning(_)) {
+                        new_devices.push(d.clone());
+                    }
+                }
+            }
             *devices = new_devices;
         }
 
         self.store.remove_all();
         for d in self.devices.borrow().iter() {
             let state = d.borrow();
-            self.store
-                .append(&gtk4::StringObject::new(&state.hub_id));
+            self.store.append(&gtk4::StringObject::new(&state.hub_id));
         }
     }
 
@@ -176,8 +179,7 @@ impl DeviceListView {
         self.store.remove_all();
         for d in self.devices.borrow().iter() {
             let state = d.borrow();
-            self.store
-                .append(&gtk4::StringObject::new(&state.hub_id));
+            self.store.append(&gtk4::StringObject::new(&state.hub_id));
         }
     }
 }

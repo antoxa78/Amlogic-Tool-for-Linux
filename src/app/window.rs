@@ -118,8 +118,7 @@ impl MainWindow {
         advanced_button.add_css_class("header-menu-button");
         header.pack_start(&advanced_button);
 
-        let partition_popover = gtk4::Popover::builder()
-            .build();
+        let partition_popover = gtk4::Popover::builder().build();
         partition_popover.set_parent(&advanced_button);
         let partition_listbox = gtk4::ListBox::builder()
             .css_classes(["partitions-list"])
@@ -132,11 +131,13 @@ impl MainWindow {
             .margin_start(6)
             .margin_end(6)
             .build();
-        partition_popover_box.append(&gtk4::Label::builder()
-            .label("Select partitions to burn")
-            .halign(gtk4::Align::Start)
-            .css_classes(["heading"])
-            .build());
+        partition_popover_box.append(
+            &gtk4::Label::builder()
+                .label("Select partitions to burn")
+                .halign(gtk4::Align::Start)
+                .css_classes(["heading"])
+                .build(),
+        );
         partition_popover_box.append(&partition_listbox);
         partition_popover.set_child(Some(&partition_popover_box));
 
@@ -190,9 +191,7 @@ impl MainWindow {
             .valign(gtk4::Align::Center)
             .build();
 
-        let burning_pct = gtk4::Label::builder()
-            .css_classes(["burning-pct"])
-            .build();
+        let burning_pct = gtk4::Label::builder().css_classes(["burning-pct"]).build();
         burning_pct.set_visible(false);
 
         // --- Main layout ---
@@ -338,7 +337,7 @@ impl MainWindow {
                 );
             })
         };
-        
+
         // --- Import action ---
         let import_action = gio::SimpleAction::new("import_image", None);
         let import_win = window.clone();
@@ -373,8 +372,8 @@ impl MainWindow {
             let sl = refresh_sl.clone();
             let st = refresh_st.clone();
             device::scan_devices_background(tl, move |devices| {
-                let count = devices.len();
                 dl.update_devices(&devices);
+                let count = dl.device_count();
                 if count > 0 {
                     st.set_visible_child_name("devices");
                 } else {
@@ -398,13 +397,7 @@ impl MainWindow {
             drop_target.connect_drop(move |_target, value, _x, _y| {
                 if let Ok(text) = value.get::<String>() {
                     for line in text.lines() {
-                        let line = line.trim();
-                        if line.is_empty() {
-                            continue;
-                        }
-                        if let Some(path_str) = line.strip_prefix("file://") {
-                            let decoded = path_str.replace("%20", " ");
-                            let path = PathBuf::from(&decoded);
+                        if let Some(path) = uri_to_path(line.trim()) {
                             if path.exists() {
                                 loader(path);
                                 return true;
@@ -426,7 +419,7 @@ impl MainWindow {
         password_action.connect_activate(move |_, _| {
             let panel = pw_panel.clone();
             let plog = pw_log.clone();
-            dialogs::show_password_dialog(&pw_win, move |opt| {
+            dialogs::show_file_dialog(&pw_win, "Select Password File", "Unlock", move |opt| {
                 if let Some(path) = opt {
                     let s = path.to_string_lossy().to_string();
                     panel.set_password_path(&s);
@@ -444,7 +437,7 @@ impl MainWindow {
         efuse_action.connect_activate(move |_, _| {
             let panel = ef_panel.clone();
             let elog = ef_log.clone();
-            dialogs::show_password_dialog(&ef_win, move |opt| {
+            dialogs::show_file_dialog(&ef_win, "Select eFuse File", "Open", move |opt| {
                 if let Some(path) = opt {
                     let s = path.to_string_lossy().to_string();
                     panel.set_efuse_path(&s);
@@ -495,16 +488,21 @@ impl MainWindow {
         // --- Keyboard shortcuts: Start / Stop actions ---
         let start_action = gio::SimpleAction::new("start_burn", None);
         let sa_btn = start_button.clone();
-        start_action.connect_activate(move |_, _| { sa_btn.activate(); });
+        start_action.connect_activate(move |_, _| {
+            sa_btn.activate();
+        });
         window.add_action(&start_action);
 
         let stop_action = gio::SimpleAction::new("stop_burn", None);
         let so_btn = stop_button.clone();
-        stop_action.connect_activate(move |_, _| { so_btn.activate(); });
+        stop_action.connect_activate(move |_, _| {
+            so_btn.activate();
+        });
         window.add_action(&stop_action);
 
         app_handle.set_accels_for_action("win.start_burn", &["<Ctrl>Return", "<Ctrl>s"]);
-        app_handle.set_accels_for_action("win.stop_burn", &["<Shift><Ctrl>Return", "<Shift><Ctrl>s"]);
+        app_handle
+            .set_accels_for_action("win.stop_burn", &["<Shift><Ctrl>Return", "<Shift><Ctrl>s"]);
 
         // --- Partitions action ---
         let partition_action = gio::SimpleAction::new("partitions", None);
@@ -513,7 +511,11 @@ impl MainWindow {
         let pa_win = window.clone();
         partition_action.connect_activate(move |_, _| {
             if pa_names.borrow().is_empty() {
-                dialogs::show_message_dialog(&pa_win, "No Image Loaded", "Please load a firmware image first before selecting partitions.");
+                dialogs::show_message_dialog(
+                    &pa_win,
+                    "No Image Loaded",
+                    "Please load a firmware image first before selecting partitions.",
+                );
             } else {
                 pa_popover.popup();
             }
@@ -544,7 +546,9 @@ impl MainWindow {
             if let Ok(pixbuf) = gtk4::gdk_pixbuf::Pixbuf::from_resource(
                 "/com/amlflashtool/gui/icons/256x256/apps/aml-flash-tool.png",
             ) {
-                if let Some(scaled) = pixbuf.scale_simple(128, 128, gtk4::gdk_pixbuf::InterpType::Bilinear) {
+                if let Some(scaled) =
+                    pixbuf.scale_simple(128, 128, gtk4::gdk_pixbuf::InterpType::Bilinear)
+                {
                     let texture = gtk4::gdk::Texture::for_pixbuf(&scaled);
                     about.set_logo(Some(&texture));
                 }
@@ -643,9 +647,15 @@ impl MainWindow {
         {
             let cfg = config.borrow();
             config_panel.set_soc(&cfg.last_soc);
-            config_panel.erase_flash_switch.set_active(cfg.last_erase_flash);
-            config_panel.erase_bootloader_switch.set_active(cfg.last_erase_bootloader);
-            config_panel.reset_switch.set_active(cfg.last_reset_after_burn);
+            config_panel
+                .erase_flash_switch
+                .set_active(cfg.last_erase_flash);
+            config_panel
+                .erase_bootloader_switch
+                .set_active(cfg.last_erase_bootloader);
+            config_panel
+                .reset_switch
+                .set_active(cfg.last_reset_after_burn);
             if !cfg.last_password_path.is_empty() {
                 config_panel.set_password_path(&cfg.last_password_path);
             }
@@ -665,7 +675,7 @@ impl MainWindow {
             cfg.last_erase_flash = close_panel.erase_flash_switch.is_active();
             cfg.last_erase_bootloader = close_panel.erase_bootloader_switch.is_active();
             cfg.last_reset_after_burn = close_panel.reset_switch.is_active();
-            cfg.last_soc = close_panel.soc();
+            cfg.last_soc = close_panel.soc_raw();
             cfg.last_password_path = close_panel.password_path();
             cfg.last_efuse_path = close_panel.efuse_path();
             cfg.save();
@@ -702,8 +712,17 @@ impl MainWindow {
         let tools_dir = self.tools_dir.clone();
         let status_label = self.status_label.clone();
         let stack = self.device_stack.clone();
+        let last_scan: Rc<RefCell<Option<std::time::Instant>>> = Rc::new(RefCell::new(None));
 
         glib::timeout_add_local(std::time::Duration::from_secs(2), move || {
+            let now = std::time::Instant::now();
+            if let Some(t) = *last_scan.borrow() {
+                if now.duration_since(t) < std::time::Duration::from_secs(10) {
+                    return glib::ControlFlow::Continue;
+                }
+            }
+            *last_scan.borrow_mut() = Some(now);
+
             let dl = device_list.clone();
             let lp = log_panel.clone();
             let tl = tools_dir.clone();
@@ -712,8 +731,8 @@ impl MainWindow {
 
             let prev_count = dl.device_count();
             device::scan_devices_background(tl, move |devices| {
-                let count = devices.len();
                 dl.update_devices(&devices);
+                let count = dl.device_count();
 
                 if count > 0 {
                     st.set_visible_child_name("devices");
@@ -722,9 +741,7 @@ impl MainWindow {
                 }
 
                 if count > prev_count {
-                    lp.append_log(&format!(
-                        "Device connected — {count} device(s) detected"
-                    ));
+                    lp.append_log(&format!("Device connected — {count} device(s) detected"));
                     sl.set_text(&format!("{count} device(s) detected"));
                 } else if count == 0 && prev_count > 0 {
                     sl.set_text("No device detected");
@@ -799,260 +816,288 @@ impl MainWindow {
                 cfg.parts = selected.join(",");
             }
 
-            // Detect ADNL-capable devices
             let adnl_path = tools_dir.join("adnl").join("adnl");
+            start_btn.set_sensitive(false);
+            let (adnl_tx, adnl_rx) = std::sync::mpsc::channel::<bool>();
             if adnl_path.exists() {
-                if let Ok(out) = std::process::Command::new(&adnl_path)
-                    .arg("devices")
-                    .output()
-                {
-                    let stdout = String::from_utf8_lossy(&out.stdout);
-                    let has_adnl = stdout.lines().any(|l| {
-                        let trimmed = l.trim();
-                        !trimmed.is_empty() && trimmed != "No DNL devices found"
-                    });
-                    if has_adnl {
-                        log.append_log("ADNL device detected, using adnl_flash_tool.sh");
-                        cfg.adnl = true;
-                    }
-                }
+                std::thread::spawn(move || {
+                    let has_adnl = std::process::Command::new("timeout")
+                        .arg("5")
+                        .arg(&adnl_path)
+                        .arg("devices")
+                        .output()
+                        .ok()
+                        .map(|out| {
+                            String::from_utf8_lossy(&out.stdout).lines().any(|l| {
+                                let trimmed = l.trim();
+                                !trimmed.is_empty() && trimmed != "No DNL devices found"
+                            })
+                        })
+                        .unwrap_or(false);
+                    let _ = adnl_tx.send(has_adnl);
+                });
+            } else {
+                let _ = adnl_tx.send(false);
             }
 
-            // Clone shared captures before creating the inner FnMut
-            let log_i = log.clone();
-            let device_list_i = device_list.clone();
-            let start_btn_i = start_btn.clone();
-            let stop_btn_i = stop_btn.clone();
-            let status_label_i = status_label.clone();
-            let burning_pct_i = burning_pct.clone();
-            let status_progress_i = status_progress.clone();
-            let tools_dir_i = tools_dir.clone();
-            let cfg_i = cfg.clone();
+            let win_c = win.clone();
+            let log_c = log.clone();
+            let device_list_c = device_list.clone();
+            let start_btn_c = start_btn.clone();
+            let stop_btn_c = stop_btn.clone();
+            let status_label_c = status_label.clone();
+            let burning_pct_c = burning_pct.clone();
+            let status_progress_c = status_progress.clone();
+            let tools_dir_c = tools_dir.clone();
 
-            let start_logic: Rc<RefCell<Option<Box<dyn FnMut()>>>> =
-                Rc::new(RefCell::new(None));
-            *start_logic.borrow_mut() = Some(Box::new(move || {
-                let devices_to_burn: Vec<Rc<RefCell<DeviceState>>> = {
-                    let devices = device_list_i.devices.borrow();
-                    devices
-                        .iter()
-                        .filter(|d| {
-                            matches!(d.borrow().status, BurnStatus::Ready)
-                        })
-                        .cloned()
-                        .collect()
+            glib::idle_add_local(move || -> glib::ControlFlow {
+                let has_adnl = match adnl_rx.try_recv() {
+                    Ok(v) => v,
+                    Err(std::sync::mpsc::TryRecvError::Empty) => {
+                        return glib::ControlFlow::Continue;
+                    }
+                    Err(std::sync::mpsc::TryRecvError::Disconnected) => {
+                        start_btn_c.set_sensitive(true);
+                        return glib::ControlFlow::Break;
+                    }
                 };
 
-                if devices_to_burn.is_empty() {
-                    log_i.append_log("No ready devices");
-                    return;
+                if has_adnl {
+                    log_c.append_log("ADNL device detected, using adnl_flash_tool.sh");
+                    cfg.adnl = true;
                 }
 
-                let script_dir = tools_dir_i
-                    .parent()
-                    .map(|p| p.to_path_buf())
-                    .unwrap_or_else(|| tools_dir_i.clone());
-
-                let count = devices_to_burn.len();
-                log_i.append_log(&format!("Starting burn on {count} device(s)"));
-                status_label_i.set_text(&format!("Burning {count} device(s)..."));
-                burning_pct_i.set_text("0%");
-                burning_pct_i.set_visible(true);
-                status_progress_i.set_fraction(0.0);
-                status_progress_i.set_visible(true);
-                start_btn_i.set_sensitive(false);
-                stop_btn_i.set_sensitive(true);
-
-                for device in devices_to_burn {
-                    let (cancel_tx, cancel_rx) = std::sync::mpsc::channel::<()>();
-                    {
-                        let mut dev = device.borrow_mut();
-                        dev.status = BurnStatus::Burning(0.0);
-                        dev.cancel_tx = Some(cancel_tx);
-                    }
-                    device_list_i.refresh_display();
-
-                    let cfg = cfg_i.clone();
-                    let script_dir = script_dir.clone();
-                    let log_c = log_i.clone();
-                    let dl = device_list_i.clone();
-                    let dev_clone = device.clone();
-                    let start_c = start_btn_i.clone();
-                    let stop_c = stop_btn_i.clone();
-                    let status_c = status_label_i.clone();
-                    let bp_c = burning_pct_i.clone();
-                    let sp_c = status_progress_i.clone();
-
-                    glib::MainContext::default().spawn_local(async move {
+                if !cfg.adnl {
+                    const SUPPORTED_SOCS: &[&str] = &["m8", "gxl", "axg", "txlx", "g12a"];
+                    if !SUPPORTED_SOCS.contains(&cfg.soc.as_str()) {
                         log_c.append_log(&format!(
-                            "[{}] Starting burn...",
-                            dev_clone.borrow().hub_id
+                            "ERROR: SoC '{}' is not supported by the classic burn engine (supported: m8, gxl, axg, txlx, g12a). Connect the device in ADNL mode for this SoC.",
+                            cfg.soc
                         ));
+                        status_label_c.set_text("Burn aborted: unsupported SoC");
+                        start_btn_c.set_sensitive(true);
+                        return glib::ControlFlow::Break;
+                    }
+                }
 
-                        let result =
-                            crate::backend::burner::BurnProcess::start(&cfg, &script_dir);
-                        let mut burner = match result {
-                            Ok(b) => b,
-                            Err(e) => {
-                                log_c.append_log(&format!(
-                                    "[{}] Failed to start: {e}",
-                                    dev_clone.borrow().hub_id
-                                ));
-                                dev_clone.borrow_mut().status = BurnStatus::Error(e);
-                                dl.refresh_display();
-                                return;
-                            }
-                        };
+                let log_i = log_c.clone();
+                let device_list_i = device_list_c.clone();
+                let start_btn_i = start_btn_c.clone();
+                let stop_btn_i = stop_btn_c.clone();
+                let status_label_i = status_label_c.clone();
+                let burning_pct_i = burning_pct_c.clone();
+                let status_progress_i = status_progress_c.clone();
+                let tools_dir_i = tools_dir_c.clone();
+                let cfg_i = cfg.clone();
 
-                        let mut cancelled = false;
-                        let mut success = false;
-                        let mut exit_code = None;
+                let start_logic: Rc<RefCell<Option<Box<dyn FnMut()>>>> =
+                    Rc::new(RefCell::new(None));
+                *start_logic.borrow_mut() = Some(Box::new(move || {
+                    let devices_to_burn: Vec<Rc<RefCell<DeviceState>>> = {
+                        let devices = device_list_i.devices.borrow();
+                        devices
+                            .iter()
+                            .filter(|d| {
+                                matches!(d.borrow().status, BurnStatus::Ready)
+                            })
+                            .cloned()
+                            .collect()
+                    };
 
-                        loop {
-                            if cancel_rx.try_recv().is_ok() {
-                                cancelled = true;
-                                log_c.append_log(&format!(
-                                    "[{}] Cancelled by user",
-                                    dev_clone.borrow().hub_id
-                                ));
-                                burner.kill();
-                                break;
-                            }
+                    if devices_to_burn.is_empty() {
+                        log_i.append_log("No ready devices");
+                        start_btn_i.set_sensitive(true);
+                        return;
+                    }
 
-                            match burner.read_line() {
-                                Some(crate::backend::burner::BurnEvent::Line(line, is_err)) => {
-                                    if !line.trim().is_empty() {
-                                        let tag = if is_err { " [STDERR]" } else { "" };
-                                        log_c.append_log(&format!(
-                                            "[{}]{tag} {line}",
-                                            dev_clone.borrow().hub_id
-                                        ));
-                                    }
-                                    if let Some(pct) =
-                                        crate::backend::progress::parse_progress(&line)
-                                    {
-                                        dev_clone.borrow_mut().status =
-                                            BurnStatus::Burning(pct / 100.0);
-                                        dl.refresh_display();
-                                        let devices = dl.devices.borrow();
-                                        let burning: Vec<f64> = devices.iter().filter_map(|d| {
-                                            if let BurnStatus::Burning(p) = d.borrow().status { Some(p) } else { None }
-                                        }).collect();
-                                        let avg = if burning.is_empty() { 0.0 } else { burning.iter().sum::<f64>() / burning.len() as f64 };
-                                        bp_c.set_text(&format!("{:.0}%", avg * 100.0));
-                                        sp_c.set_fraction(avg);
-                                    }
-                                    if line.contains("[OK]") {
-                                        success = true;
-                                    }
-                                    if line.contains("[KO]") {
-                                        success = false;
-                                    }
-                                }
-                                Some(crate::backend::burner::BurnEvent::Exited(code)) => {
-                                    exit_code = Some(code);
-                                    // Drain any remaining lines
-                                }
-                                Some(crate::backend::burner::BurnEvent::Error(e)) => {
+                    let script_dir = tools_dir_i
+                        .parent()
+                        .map(|p| p.to_path_buf())
+                        .unwrap_or_else(|| tools_dir_i.clone());
+
+                    let count = devices_to_burn.len();
+                    log_i.append_log(&format!("Starting burn on {count} device(s)"));
+                    status_label_i.set_text(&format!("Burning {count} device(s)..."));
+                    burning_pct_i.set_text("0%");
+                    burning_pct_i.set_visible(true);
+                    status_progress_i.set_fraction(0.0);
+                    status_progress_i.set_visible(true);
+                    start_btn_i.set_sensitive(false);
+                    stop_btn_i.set_sensitive(true);
+
+                    for device in devices_to_burn {
+                        let (cancel_tx, cancel_rx) = std::sync::mpsc::channel::<()>();
+                        {
+                            let mut dev = device.borrow_mut();
+                            dev.status = BurnStatus::Burning(0.0);
+                            dev.cancel_tx = Some(cancel_tx);
+                        }
+                        device_list_i.refresh_display();
+
+                        let cfg = cfg_i.clone();
+                        let script_dir = script_dir.clone();
+                        let log_c = log_i.clone();
+                        let dl = device_list_i.clone();
+                        let dev_clone = device.clone();
+                        let start_c = start_btn_i.clone();
+                        let stop_c = stop_btn_i.clone();
+                        let status_c = status_label_i.clone();
+                        let bp_c = burning_pct_i.clone();
+                        let sp_c = status_progress_i.clone();
+
+                        glib::MainContext::default().spawn_local(async move {
+                            log_c.append_log(&format!(
+                                "[{}] Starting burn...",
+                                dev_clone.borrow().hub_id
+                            ));
+
+                            let result =
+                                crate::backend::burner::BurnProcess::start(&cfg, &script_dir);
+                            let mut burner = match result {
+                                Ok(b) => b,
+                                Err(e) => {
                                     log_c.append_log(&format!(
-                                        "[{}] Error: {e}",
+                                        "[{}] Failed to start: {e}",
                                         dev_clone.borrow().hub_id
                                     ));
+                                    dev_clone.borrow_mut().status = BurnStatus::Error(e);
+                                    dl.refresh_display();
+                                    finish_burn_check(&dl, &bp_c, &sp_c, &start_c, &stop_c, &status_c);
+                                    return;
+                                }
+                            };
+
+                            let mut cancelled = false;
+                            let mut success = false;
+                            let mut exit_code = None;
+
+                            loop {
+                                if cancel_rx.try_recv().is_ok() {
+                                    cancelled = true;
+                                    log_c.append_log(&format!(
+                                        "[{}] Cancelled by user",
+                                        dev_clone.borrow().hub_id
+                                    ));
+                                    burner.kill();
                                     break;
                                 }
-                                None => {
-                                    if exit_code.is_some() {
+
+                                match burner.read_line() {
+                                    Some(crate::backend::burner::BurnEvent::Line(line, is_err)) => {
+                                        if !line.trim().is_empty() {
+                                            let tag = if is_err { " [STDERR]" } else { "" };
+                                            log_c.append_log(&format!(
+                                                "[{}]{tag} {line}",
+                                                dev_clone.borrow().hub_id
+                                            ));
+                                        }
+                                        if let Some(pct) =
+                                            crate::backend::progress::parse_progress(&line)
+                                        {
+                                            dev_clone.borrow_mut().status =
+                                                BurnStatus::Burning(pct / 100.0);
+                                            dl.refresh_display();
+                                            let devices = dl.devices.borrow();
+                                            let burning: Vec<f64> = devices.iter().filter_map(|d| {
+                                                if let BurnStatus::Burning(p) = d.borrow().status { Some(p) } else { None }
+                                            }).collect();
+                                            let avg = if burning.is_empty() { 0.0 } else { burning.iter().sum::<f64>() / burning.len() as f64 };
+                                            bp_c.set_text(&format!("{:.0}%", avg * 100.0));
+                                            sp_c.set_fraction(avg);
+                                        }
+                                        if line.contains("[OK]") {
+                                            success = true;
+                                        }
+                                        if line.contains("[KO]") {
+                                            success = false;
+                                        }
+                                    }
+                                    Some(crate::backend::burner::BurnEvent::Exited(code)) => {
+                                        exit_code = Some(code);
+                                        // Drain any remaining lines
+                                    }
+                                    Some(crate::backend::burner::BurnEvent::Error(e)) => {
+                                        log_c.append_log(&format!(
+                                            "[{}] Error: {e}",
+                                            dev_clone.borrow().hub_id
+                                        ));
                                         break;
                                     }
-                                    glib::timeout_future(
-                                        std::time::Duration::from_millis(50),
-                                    )
-                                    .await;
+                                    None => {
+                                        if exit_code.is_some() {
+                                            break;
+                                        }
+                                        glib::timeout_future(
+                                            std::time::Duration::from_millis(50),
+                                        )
+                                        .await;
+                                    }
                                 }
                             }
-                        }
 
-                        if cancelled {
-                            dev_clone.borrow_mut().status =
-                                BurnStatus::Error("Cancelled".into());
-                        } else {
-                            let code = exit_code.unwrap_or(-1);
-                            if code == 0 && success {
-                                dev_clone.borrow_mut().status = BurnStatus::Success;
-                                log_c.append_log(&format!(
-                                    "[{}] Completed!",
-                                    dev_clone.borrow().hub_id
-                                ));
-                            } else if code == 0 && !success {
+                            if cancelled {
                                 dev_clone.borrow_mut().status =
-                                    BurnStatus::Error("No [OK] marker".into());
-                                log_c.append_log(&format!(
-                                    "[{}] Process succeeded but no [OK] marker found",
-                                    dev_clone.borrow().hub_id
-                                ));
+                                    BurnStatus::Error("Cancelled".into());
                             } else {
-                                dev_clone.borrow_mut().status =
-                                    BurnStatus::Error(format!("Exit code: {code}"));
-                                log_c.append_log(&format!(
-                                    "[{}] Finished (exit: {code})",
-                                    dev_clone.borrow().hub_id
-                                ));
+                                let code = exit_code.unwrap_or(-1);
+                                if code == 0 && success {
+                                    dev_clone.borrow_mut().status = BurnStatus::Success;
+                                    log_c.append_log(&format!(
+                                        "[{}] Completed!",
+                                        dev_clone.borrow().hub_id
+                                    ));
+                                } else if code == 0 && !success {
+                                    dev_clone.borrow_mut().status =
+                                        BurnStatus::Error("No [OK] marker".into());
+                                    log_c.append_log(&format!(
+                                        "[{}] Process succeeded but no [OK] marker found",
+                                        dev_clone.borrow().hub_id
+                                    ));
+                                } else {
+                                    dev_clone.borrow_mut().status =
+                                        BurnStatus::Error(format!("Exit code: {code}"));
+                                    log_c.append_log(&format!(
+                                        "[{}] Finished (exit: {code})",
+                                        dev_clone.borrow().hub_id
+                                    ));
+                                }
                             }
-                        }
 
-                        dev_clone.borrow_mut().cancel_tx = None;
-                        dl.refresh_display();
+                            dev_clone.borrow_mut().cancel_tx = None;
+                            dl.refresh_display();
 
-                        let any_burning = dl.devices.borrow().iter().any(|d| {
-                            matches!(d.borrow().status, BurnStatus::Burning(_))
+                            finish_burn_check(&dl, &bp_c, &sp_c, &start_c, &stop_c, &status_c);
                         });
-                        if !any_burning {
-                            bp_c.set_visible(false);
-                            sp_c.set_visible(false);
-                            start_c.set_sensitive(true);
-                            stop_c.set_sensitive(false);
-                            let total = dl.device_count();
-                            let ok_count = dl
-                                .devices
-                                .borrow()
-                                .iter()
-                                .filter(|d| matches!(d.borrow().status, BurnStatus::Success))
-                                .count();
-                            let err_count = dl
-                                .devices
-                                .borrow()
-                                .iter()
-                                .filter(|d| matches!(d.borrow().status, BurnStatus::Error(_)))
-                                .count();
-                            status_c.set_text(&format!(
-                                "Done — {ok_count} OK, {err_count} Fail / {total} total"
-                            ));
-                        }
-                    });
-                }
-            }));
+                    }
+                }));
 
-            if erase_bootloader {
-                let start_c = start_logic.clone();
-                dialogs::show_confirm_dialog(
-                    &win,
-                    "Erase Bootloader",
-                    "Are you sure? Erasing the bootloader may brick the device if interrupted.",
-                    move |confirmed| {
-                        if confirmed {
-                            let mut guard = start_c.borrow_mut();
-                            if let Some(ref mut f) = *guard {
-                                f();
+                if erase_bootloader {
+                    let start_c = start_logic.clone();
+                    let cancel_btn = start_btn_c.clone();
+                    dialogs::show_confirm_dialog(
+                        &win_c,
+                        "Erase Bootloader",
+                        "Are you sure? Erasing the bootloader may brick the device if interrupted.",
+                        move |confirmed| {
+                            if confirmed {
+                                let mut guard = start_c.borrow_mut();
+                                if let Some(ref mut f) = *guard {
+                                    f();
+                                }
+                            } else {
+                                cancel_btn.set_sensitive(true);
                             }
-                        }
-                    },
-                );
-            } else {
-                let mut guard = start_logic.borrow_mut();
-                if let Some(ref mut f) = *guard {
-                    f();
+                        },
+                    );
+                } else {
+                    let mut guard = start_logic.borrow_mut();
+                    if let Some(ref mut f) = *guard {
+                        f();
+                    }
                 }
-            }
+
+                glib::ControlFlow::Break
+            });
         });
 
         let log = self.log_panel.clone();
@@ -1083,12 +1128,81 @@ impl MainWindow {
     }
 }
 
+fn finish_burn_check(
+    dl: &Rc<DeviceListView>,
+    bp_c: &gtk4::Label,
+    sp_c: &gtk4::ProgressBar,
+    start_c: &gtk4::Button,
+    stop_c: &gtk4::Button,
+    status_c: &gtk4::Label,
+) {
+    let any_burning = dl
+        .devices
+        .borrow()
+        .iter()
+        .any(|d| matches!(d.borrow().status, BurnStatus::Burning(_)));
+    if !any_burning {
+        bp_c.set_visible(false);
+        sp_c.set_visible(false);
+        start_c.set_sensitive(true);
+        stop_c.set_sensitive(false);
+        let total = dl.device_count();
+        let ok_count = dl
+            .devices
+            .borrow()
+            .iter()
+            .filter(|d| matches!(d.borrow().status, BurnStatus::Success))
+            .count();
+        let err_count = dl
+            .devices
+            .borrow()
+            .iter()
+            .filter(|d| matches!(d.borrow().status, BurnStatus::Error(_)))
+            .count();
+        status_c.set_text(&format!(
+            "Done — {ok_count} OK, {err_count} Fail / {total} total"
+        ));
+    }
+}
+
+fn uri_to_path(uri: &str) -> Option<PathBuf> {
+    let rest = uri.strip_prefix("file://")?;
+    let rest = rest.strip_prefix("localhost/").unwrap_or(rest);
+    Some(PathBuf::from(percent_decode(rest)))
+}
+
+fn percent_decode(s: &str) -> String {
+    fn hex(b: u8) -> Option<u8> {
+        match b {
+            b'0'..=b'9' => Some(b - b'0'),
+            b'a'..=b'f' => Some(b - b'a' + 10),
+            b'A'..=b'F' => Some(b - b'A' + 10),
+            _ => None,
+        }
+    }
+    let bytes = s.as_bytes();
+    let mut out = Vec::with_capacity(bytes.len());
+    let mut i = 0;
+    while i < bytes.len() {
+        if bytes[i] == b'%' && i + 2 < bytes.len() {
+            if let (Some(h), Some(l)) = (hex(bytes[i + 1]), hex(bytes[i + 2])) {
+                out.push(h * 16 + l);
+                i += 3;
+                continue;
+            }
+        }
+        out.push(bytes[i]);
+        i += 1;
+    }
+    String::from_utf8_lossy(&out).into_owned()
+}
+
 fn find_tools_dir() -> PathBuf {
     let system_tools = PathBuf::from("/usr/lib/amlogicburn/tools");
     if system_tools.exists() {
         return system_tools;
     }
-    
+
     let exe = std::env::current_exe().ok();
     if let Some(exe_path) = exe {
         let dir = exe_path.parent().unwrap();

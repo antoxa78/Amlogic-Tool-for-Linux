@@ -27,13 +27,17 @@ where
     );
 }
 
-pub fn show_password_dialog<F>(parent: &impl IsA<gtk4::Window>, callback: F)
-where
+pub fn show_file_dialog<F>(
+    parent: &impl IsA<gtk4::Window>,
+    title: &str,
+    accept_label: &str,
+    callback: F,
+) where
     F: FnOnce(Option<PathBuf>) + 'static,
 {
     let dialog = gtk4::FileDialog::builder()
-        .title("Select Password File")
-        .accept_label("Unlock")
+        .title(title)
+        .accept_label(accept_label)
         .modal(true)
         .build();
 
@@ -68,12 +72,7 @@ where
     );
 }
 
-pub fn show_confirm_dialog<W, F>(
-    parent: &W,
-    title: &str,
-    body: &str,
-    callback: F,
-)
+pub fn show_confirm_dialog<W, F>(parent: &W, title: &str, body: &str, callback: F)
 where
     W: IsA<gtk4::Window> + IsA<gtk4::Widget>,
     F: FnOnce(bool) + 'static,
@@ -87,13 +86,9 @@ where
     dialog.set_response_appearance("confirm", libadwaita::ResponseAppearance::Destructive);
     dialog.set_default_response(Some("cancel"));
 
-    dialog.choose(
-        parent,
-        Option::<&gio::Cancellable>::None,
-        move |response| {
-            callback(response == "confirm");
-        },
-    );
+    dialog.choose(parent, Option::<&gio::Cancellable>::None, move |response| {
+        callback(response == "confirm");
+    });
 }
 
 pub fn show_message_dialog<W>(parent: &W, title: &str, body: &str)
@@ -106,9 +101,5 @@ where
     let dialog = libadwaita::AlertDialog::new(Some(title), Some(body));
     dialog.add_response("ok", "OK");
     dialog.set_default_response(Some("ok"));
-    dialog.choose(
-        parent,
-        Option::<&gio::Cancellable>::None,
-        |_| {},
-    );
+    dialog.choose(parent, Option::<&gio::Cancellable>::None, |_| {});
 }

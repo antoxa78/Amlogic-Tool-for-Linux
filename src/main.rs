@@ -1,6 +1,7 @@
 use glib::ExitCode;
 use gtk4::prelude::ApplicationExt;
 use gtk4::prelude::ApplicationExtManual;
+use gtk4::prelude::GtkApplicationExt;
 use gtk4::prelude::GtkWindowExt;
 use gtk4::prelude::WidgetExt;
 
@@ -36,7 +37,9 @@ windowcontrols > button.titlebutton > image {
 fn main() -> ExitCode {
     // Force client-side decorations before GTK initializes
     // (Cinnamon/Muffin defaults to SSD which bypasses our CSS)
-    unsafe { std::env::set_var("GTK_CSD", "1"); }
+    unsafe {
+        std::env::set_var("GTK_CSD", "1");
+    }
 
     libadwaita::init().expect("Failed to init libadwaita");
 
@@ -51,13 +54,20 @@ fn main() -> ExitCode {
         .build();
 
     app.connect_activate(|app| {
+        if let Some(existing) = app
+            .active_window()
+            .or_else(|| app.windows().first().cloned())
+        {
+            existing.present();
+            return;
+        }
+
         let mw = app::window::MainWindow::new(app);
 
         let display = mw.window.display();
 
         // Register icon resource path so icon_name("aml-flash-tool") resolves
-        gtk4::IconTheme::for_display(&display)
-            .add_resource_path("/com/amlflashtool/gui/icons");
+        gtk4::IconTheme::for_display(&display).add_resource_path("/com/amlflashtool/gui/icons");
 
         // Load app CSS
         let css = gtk4::CssProvider::new();

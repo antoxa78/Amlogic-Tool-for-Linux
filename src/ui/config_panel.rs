@@ -1,4 +1,3 @@
-use gtk4::prelude::WidgetExt;
 use libadwaita::prelude::ActionRowExt;
 use libadwaita::prelude::PreferencesGroupExt;
 use libadwaita::prelude::PreferencesPageExt;
@@ -27,8 +26,8 @@ pub struct ConfigPanel {
     pub erase_flash_switch: gtk4::Switch,
     pub erase_bootloader_switch: gtk4::Switch,
     soc_dropdown: gtk4::DropDown,
-    password_path_label: gtk4::Label,
-    efuse_path_label: gtk4::Label,
+    password_path: RefCell<String>,
+    efuse_path: RefCell<String>,
     image_path: RefCell<String>,
 }
 
@@ -45,9 +44,7 @@ impl ConfigPanel {
             .title("Erase Flash")
             .subtitle("Wipe all data before burning")
             .build();
-        let erase_flash_switch = gtk4::Switch::builder()
-            .valign(gtk4::Align::Center)
-            .build();
+        let erase_flash_switch = gtk4::Switch::builder().valign(gtk4::Align::Center).build();
         erase_flash_row.add_suffix(&erase_flash_switch);
         erase_flash_row.set_activatable_widget(Some(&erase_flash_switch));
         options_group.add(&erase_flash_row);
@@ -56,9 +53,7 @@ impl ConfigPanel {
             .title("Erase Bootloader")
             .subtitle("Remove bootloader (may brick device)")
             .build();
-        let erase_bootloader_switch = gtk4::Switch::builder()
-            .valign(gtk4::Align::Center)
-            .build();
+        let erase_bootloader_switch = gtk4::Switch::builder().valign(gtk4::Align::Center).build();
         erase_boot_row.add_suffix(&erase_bootloader_switch);
         erase_boot_row.set_activatable_widget(Some(&erase_bootloader_switch));
         options_group.add(&erase_boot_row);
@@ -86,47 +81,13 @@ impl ConfigPanel {
             .selected(0u32)
             .valign(gtk4::Align::Center)
             .build();
-        let soc_row = libadwaita::ActionRow::builder()
-            .title("SoC")
-            .build();
+        let soc_row = libadwaita::ActionRow::builder().title("SoC").build();
         soc_row.add_suffix(&soc_dropdown);
         soc_row.set_activatable_widget(Some(&soc_dropdown));
         soc_group.add(&soc_row);
 
-        // ── Extra files group ──────────────────────────────────────────────
-        let files_group = libadwaita::PreferencesGroup::builder()
-            .title("Extra Files")
-            .build();
-
-        let password_path_label = gtk4::Label::builder()
-            .label("None")
-            .halign(gtk4::Align::End)
-            .ellipsize(gtk4::pango::EllipsizeMode::Start)
-            .css_classes(["label-dim"])
-            .build();
-        let password_row = libadwaita::ActionRow::builder()
-            .title("Password File")
-            .subtitle("Optional unlock file")
-            .build();
-        password_row.add_suffix(&password_path_label);
-        files_group.add(&password_row);
-
-        let efuse_path_label = gtk4::Label::builder()
-            .label("None")
-            .halign(gtk4::Align::End)
-            .ellipsize(gtk4::pango::EllipsizeMode::Start)
-            .css_classes(["label-dim"])
-            .build();
-        let efuse_row = libadwaita::ActionRow::builder()
-            .title("eFuse File")
-            .subtitle("Optional eFuse data")
-            .build();
-        efuse_row.add_suffix(&efuse_path_label);
-        files_group.add(&efuse_row);
-
         page.add(&options_group);
         page.add(&soc_group);
-        page.add(&files_group);
 
         Self {
             page,
@@ -134,8 +95,8 @@ impl ConfigPanel {
             erase_flash_switch,
             erase_bootloader_switch,
             soc_dropdown,
-            password_path_label,
-            efuse_path_label,
+            password_path: RefCell::new(String::new()),
+            efuse_path: RefCell::new(String::new()),
             image_path: RefCell::new(String::new()),
         }
     }
@@ -150,59 +111,40 @@ impl ConfigPanel {
 
     pub fn set_soc(&self, soc: &str) {
         let lower = soc.to_lowercase();
-        if let Some(pos) = SOCS.iter().position(|s| s.to_lowercase().starts_with(&lower)) {
+        if let Some(pos) = SOCS
+            .iter()
+            .position(|s| s.to_lowercase().starts_with(&lower))
+        {
             self.soc_dropdown.set_selected(pos as u32);
         }
     }
 
-    pub fn soc(&self) -> String {
+    pub fn soc_raw(&self) -> String {
         let pos = self.soc_dropdown.selected();
-        let entry = SOCS.get(pos as usize).unwrap_or(&"gxl (S905X)");
-        let raw = entry.split_whitespace().next().unwrap_or("gxl");
-        match raw {
-            "g12b" | "sm1" => "g12a",
-            other => other,
+        let entry = SOCS.get(pos as usize).unwrap_or(&"gxl");
+        entry.split_whitespace().next().unwrap_or("gxl").to_string()
+    }
+
+    pub fn soc(&self) -> String {
+        match self.soc_raw().as_str() {
+            "g12b" | "sm1" => "g12a".to_string(),
+            other => other.to_string(),
         }
-        .to_string()
     }
 
     pub fn set_password_path(&self, path: &str) {
-        // Show only the filename for brevity
-        let display = std::path::Path::new(path)
-            .file_name()
-            .and_then(|n| n.to_str())
-            .unwrap_or(path);
-        self.password_path_label.set_text(display);
-        self.password_path_label.set_tooltip_text(Some(path));
+        *self.password_path.borrow_mut() = path.to_string();
     }
 
     pub fn password_path(&self) -> String {
-        // Tooltip holds the full path; label may be filename-only
-        self.password_path_label
-            .tooltip_text()
-            .map(|s| s.to_string())
-            .unwrap_or_else(|| {
-                let t = self.password_path_label.text();
-                if t == "None" { String::new() } else { t.to_string() }
-            })
+        self.password_path.borrow().clone()
     }
 
     pub fn set_efuse_path(&self, path: &str) {
-        let display = std::path::Path::new(path)
-            .file_name()
-            .and_then(|n| n.to_str())
-            .unwrap_or(path);
-        self.efuse_path_label.set_text(display);
-        self.efuse_path_label.set_tooltip_text(Some(path));
+        *self.efuse_path.borrow_mut() = path.to_string();
     }
 
     pub fn efuse_path(&self) -> String {
-        self.efuse_path_label
-            .tooltip_text()
-            .map(|s| s.to_string())
-            .unwrap_or_else(|| {
-                let t = self.efuse_path_label.text();
-                if t == "None" { String::new() } else { t.to_string() }
-            })
+        self.efuse_path.borrow().clone()
     }
 }
