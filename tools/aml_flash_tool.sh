@@ -17,7 +17,13 @@ GREEN='\033[0;32m'
 YELLOW='\033[0;33m'
 CYAN='\033[0;36m'
 RESET='\033[m'
-TOOL_PATH="$(cd $(dirname $0); pwd)"
+TOOL_PATH="$(cd "$(dirname "$0")"; pwd)"
+# Helper binaries are looked up as $TOOL_PATH/tools/<system>/... . When this
+# script lives inside the tools/ directory itself (bundled / .deb layout),
+# step up one level so those paths resolve.
+if [[ ! -d "$TOOL_PATH/tools" ]] && [[ -d "$TOOL_PATH/linux-x86" ]]; then
+    TOOL_PATH="$(dirname "$TOOL_PATH")"
+fi
 SYSTEM='linux-x86'
 EXE=
 
@@ -155,7 +161,7 @@ for opt do
         ;;
     --img)
         target_img="$optval"
-        check_file $target_img
+        check_file "$target_img"
         ;;
     --parts)
         parts="$optval"
@@ -290,7 +296,7 @@ fi
 # --------------------
 if [[ "$SYSTEM" == "windows" ]]; then
    tmp_dir="C:/tmp/aml-flash-tool"`date +%H%M%S`
-   mkdir -p $tmp_dir
+   mkdir -p "$tmp_dir"
 else
    tmp_dir=$(mktemp -d /tmp/aml-flash-tool-XXXX)
 fi
@@ -424,7 +430,7 @@ fi
 # Unpack image if image is given
 # ------------------------------
 echo -n "Unpacking image "
-return_value=`$TOOL_PATH/tools/$SYSTEM/aml_image_v2_packer$EXE -d $target_img $tmp_dir`
+return_value=`$TOOL_PATH/tools/$SYSTEM/aml_image_v2_packer$EXE -d "$target_img" "$tmp_dir"`
 print_debug "\n$return_value"
 if [[ -z `echo $return_value|grep "Image unpack OK!"` ]]; then
    echo -e $RED"[KO]"$RESET

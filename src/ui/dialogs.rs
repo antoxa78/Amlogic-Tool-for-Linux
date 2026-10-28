@@ -14,7 +14,15 @@ where
 
     let filter = gtk4::FileFilter::new();
     filter.add_pattern("*.img");
+    filter.add_pattern("*.IMG");
     filter.set_name(Some("Amlogic firmware (*.img)"));
+    let all = gtk4::FileFilter::new();
+    all.add_pattern("*");
+    all.set_name(Some("All files"));
+    let filters = gio::ListStore::new::<gtk4::FileFilter>();
+    filters.append(&filter);
+    filters.append(&all);
+    dialog.set_filters(Some(&filters));
     dialog.set_default_filter(Some(&filter));
 
     dialog.open(
@@ -72,7 +80,13 @@ where
     );
 }
 
-pub fn show_confirm_dialog<W, F>(parent: &W, title: &str, body: &str, callback: F)
+pub fn show_confirm_dialog<W, F>(
+    parent: &W,
+    title: &str,
+    body: &str,
+    confirm_label: &str,
+    callback: F,
+)
 where
     W: IsA<gtk4::Window> + IsA<gtk4::Widget>,
     F: FnOnce(bool) + 'static,
@@ -82,24 +96,12 @@ where
 
     let dialog = libadwaita::AlertDialog::new(Some(title), Some(body));
     dialog.add_response("cancel", "Cancel");
-    dialog.add_response("confirm", "Confirm");
+    dialog.add_response("confirm", confirm_label);
     dialog.set_response_appearance("confirm", libadwaita::ResponseAppearance::Destructive);
     dialog.set_default_response(Some("cancel"));
+    dialog.set_close_response("cancel");
 
     dialog.choose(parent, Option::<&gio::Cancellable>::None, move |response| {
         callback(response == "confirm");
     });
-}
-
-pub fn show_message_dialog<W>(parent: &W, title: &str, body: &str)
-where
-    W: IsA<gtk4::Window> + IsA<gtk4::Widget>,
-{
-    use libadwaita::prelude::AlertDialogExt;
-    use libadwaita::prelude::AlertDialogExtManual;
-
-    let dialog = libadwaita::AlertDialog::new(Some(title), Some(body));
-    dialog.add_response("ok", "OK");
-    dialog.set_default_response(Some("ok"));
-    dialog.choose(parent, Option::<&gio::Cancellable>::None, |_| {});
 }

@@ -9,13 +9,13 @@ Built with Rust + GTK4 / libadwaita.
 
 ## Features
 
-- **Multi-device support** — flash multiple devices simultaneously
-- **Auto device detection** — polls USB every 2 seconds, no manual refresh needed
+- **Multi-device support** — flash multiple devices simultaneously (classic engine; ADNL one at a time)
+- **Auto device detection** — polls USB every 3 seconds (paused while burning), no manual refresh needed
 - **Dual burn engine** — classic `aml_flash_tool` for legacy SoCs, `adnl` for newer ones (auto-selected)
-- **Partition selection** — choose which partitions to burn via Advanced Settings → Partitions
-- **Drag & drop** — drop a `.img` file onto the window to load it
+- **Partition selection** — choose which partitions to burn in the Partitions row of the side panel
+- **Drag & drop** — drop a `.img` file onto the window to load it (or open it with the app from your file manager)
 - **Recent images** — quick access to last 10 used firmware files
-- **Live log** — timestamped output with optional save-to-file
+- **Live log** — timestamped, color-coded output with copy and save-to-file
 - **Persistent settings** — all options (SoC, erase flags, window size) saved across sessions
 - **Safety confirmation** — warns before erasing bootloader
 
@@ -42,14 +42,19 @@ Built with Rust + GTK4 / libadwaita.
 
 > **Note:** g12b and sm1 use the g12a protocol internally — this is handled automatically.
 
+> **Engine limits:** The ADNL engine burns one device per run and does not implement
+> **Erase Flash** or **Erase Bootloader**. The app aborts with a clear error if either
+> option is selected in ADNL mode — uncheck it or use the classic engine.
+
 ---
 
 ## Requirements
 
-- Linux x86_64 (ARM build included but less tested)
-- libusb 1.0
+- Linux x86_64 (source includes ARM tools; the released `.deb` is amd64-only; bundled ADNL binaries are x86_64-only)
+- libusb 1.0 + libusb-compat (0.1)
 - GTK 4.12+
 - libadwaita 1.5+
+- `pv` (optional, for `sdcard_burn_tool.sh`)
 
 ---
 
@@ -85,7 +90,7 @@ sudo usermod -aG plugdev $USER
 
 ```bash
 # Dependencies (Debian/Ubuntu)
-sudo apt install libgtk-4-dev libadwaita-1-dev libglib2.0-dev cargo
+sudo apt install libgtk-4-dev libadwaita-1-dev libglib2.0-dev libusb-0.1-4 cargo
 
 # Build
 cargo build --release
@@ -104,9 +109,9 @@ cargo deb
 
 1. Connect your Amlogic device in **USB burning mode**  
    (hold the reset button while connecting USB, or use a toothpick on the AV port)
-2. Launch the tool — the device will appear automatically within 2 seconds
-3. Load a firmware image: **File → Import Image** or drag & drop a `.img` file
-4. Select the correct SoC type in the right panel
+2. Launch the tool — the device will appear automatically within a few seconds
+3. Load a firmware image: **Open Image** (or the ▾ next to it for recent files), or drag & drop a `.img` file
+4. Check the SoC type (auto-detected from the image) and, optionally, which partitions to burn
 5. Configure options (Erase Flash, Reset After Burn, etc.)
 6. Click **Start**
 
@@ -115,8 +120,10 @@ cargo deb
 | Key | Action |
 |---|---|
 | `Ctrl+O` | Open firmware image |
-| `Ctrl+Enter` or `Ctrl+S` | Start burning |
-| `Shift+Ctrl+Enter` or `Shift+Ctrl+S` | Stop burning |
+| `Ctrl+Enter` | Start burning |
+| `Shift+Ctrl+Enter` | Stop burning |
+| `Ctrl+L` | Clear log |
+| `Ctrl+?` | Show shortcuts |
 | `F5` or `Ctrl+R` | Refresh devices |
 
 ---
@@ -129,7 +136,7 @@ cargo deb
 - Some boards require holding the reset/update button before connecting USB
 
 **"No partitions selected"**
-- This means no image is loaded — use File → Import Image first
+- This means no image is loaded — use **Open Image** first
 
 **"Failed to start" error**
 - Check that the bundled tools are executable: `ls -la /usr/lib/amlogicburn/tools/linux-x86/`

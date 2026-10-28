@@ -38,29 +38,41 @@ impl DeviceListView {
 
         factory.connect_setup(|_, list_item| {
             if let Some(item) = list_item.downcast_ref::<gtk4::ListItem>() {
-                let label = gtk4::Label::builder()
-                    .halign(gtk4::Align::Start)
+                let row = gtk4::Box::builder()
+                    .spacing(10)
                     .margin_start(8)
                     .margin_end(8)
-                    .margin_top(4)
-                    .margin_bottom(4)
+                    .margin_top(6)
+                    .margin_bottom(6)
                     .build();
-                item.set_child(Some(&label));
+                row.append(&gtk4::Image::from_icon_name("drive-removable-media-symbolic"));
+                let label = gtk4::Label::builder()
+                    .halign(gtk4::Align::Start)
+                    .ellipsize(gtk4::pango::EllipsizeMode::End)
+                    .css_classes(["device-id"])
+                    .build();
+                row.append(&label);
+                item.set_child(Some(&row));
             }
         });
 
         factory.connect_bind(|_, list_item| {
             if let Some(item) = list_item.downcast_ref::<gtk4::ListItem>() {
                 if let Some(obj) = item.item().and_downcast::<gtk4::StringObject>() {
-                    if let Some(label) = item.child().and_downcast::<gtk4::Label>() {
+                    if let Some(label) = item
+                        .child()
+                        .and_then(|c| c.last_child())
+                        .and_downcast::<gtk4::Label>()
+                    {
                         label.set_text(&obj.string());
+                        label.set_tooltip_text(Some(&obj.string()));
                     }
                 }
             }
         });
 
         gtk4::ColumnViewColumn::builder()
-            .title("HUB / Port")
+            .title("Device")
             .factory(&factory)
             .resizable(true)
             .build()
@@ -79,8 +91,7 @@ impl DeviceListView {
                     .show_text(true)
                     .margin_start(8)
                     .margin_end(8)
-                    .margin_top(4)
-                    .margin_bottom(4)
+                    .valign(gtk4::Align::Center)
                     .build();
                 item.set_child(Some(&pb));
             }
@@ -95,6 +106,7 @@ impl DeviceListView {
                     pb.remove_css_class("status-burning");
                     pb.remove_css_class("status-success");
                     pb.remove_css_class("status-error");
+                    pb.set_tooltip_text(None);
                     if let Some(dev_rc) = state {
                         let dev = dev_rc.borrow();
                         match &dev.status {
@@ -120,7 +132,8 @@ impl DeviceListView {
                             }
                             BurnStatus::Error(e) => {
                                 pb.set_fraction(0.0);
-                                pb.set_text(Some(&format!("Error: {e}")));
+                                pb.set_text(Some(&format!("Failed — {e}")));
+                                pb.set_tooltip_text(Some(e));
                                 pb.add_css_class("status-error");
                             }
                         }
@@ -164,10 +177,21 @@ impl DeviceListView {
             *devices = new_devices;
         }
 
-        self.store.remove_all();
-        for d in self.devices.borrow().iter() {
-            let state = d.borrow();
-            self.store.append(&gtk4::StringObject::new(&state.hub_id));
+        let ids: Vec<String> = self
+            .devices
+            .borrow()
+            .iter()
+            .map(|d| d.borrow().hub_id.clone())
+            .collect();
+        let current: Vec<String> = (0..self.store.n_items())
+            .filter_map(|i| self.store.item(i).and_downcast::<gtk4::StringObject>())
+            .map(|o| o.string().to_string())
+            .collect();
+        if ids != current {
+            self.store.remove_all();
+            for id in &ids {
+                self.store.append(&gtk4::StringObject::new(id));
+            }
         }
     }
 
@@ -175,11 +199,45 @@ impl DeviceListView {
         self.devices.borrow().len()
     }
 
+    /// Re-bind every row so status/progress changes show up, without
+    /// Re-uses the model (one splice) rather than clearing it.
     pub fn refresh_display(&self) {
-        self.store.remove_all();
-        for d in self.devices.borrow().iter() {
-            let state = d.borrow();
-            self.store.append(&gtk4::StringObject::new(&state.hub_id));
+        let n = self.store.n_items();
+        if n as usize != self.device_count() {
+            self.store.remove_all();
+            for d in self.devices.borrow().iter() {
+                self.store
+                    .append(&gtk4::StringObject::new(&d.borrow().hub_id));
+            }
+        } else if n > 0 {
+            // GTK skips re-binding rows whose item object is unchanged, so
+            // swap in fresh objects to force the status column to redraw.
+            let fresh: Vec<gtk4::StringObject> = self
+                .devices
+                .borrow()
+                .iter()
+                .map(|d| gtk4::StringObject::new(&d.borrow().hub_id))
+                .collect();
+            self.store.splice(0, n, &fresh);
         }
+    }
+
+    pub fn any_burning(&self) -> bool {
+        self.devices
+            .borrow()
+            .iter()
+            .any(|d| matches!(d.borrow().status, BurnStatus::Burning(_)))
+    }
+
+    /// Devices that finished (OK or failed) and are still attached become
+    /// eligible for another run.
+    pub fn reset_finished(&self) {
+        for d in self.devices.borrow().iter() {
+            let mut dev = d.borrow_mut();
+            if matches!(dev.status, BurnStatus::Success | BurnStatus::Error(_)) {
+                dev.status = BurnStatus::Ready;
+            }
+        }
+        self.refresh_display();
     }
 }

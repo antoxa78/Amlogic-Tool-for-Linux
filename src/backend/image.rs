@@ -24,13 +24,45 @@ pub fn cleanup_stale_tmp() {
             let home = std::env::var("HOME").unwrap_or_else(|_| "/tmp".into());
             PathBuf::from(home).join(".cache/aml-flash-tool")
         });
-    if base.exists() {
-        if let Ok(entries) = std::fs::read_dir(&base) {
-            for entry in entries.flatten() {
-                let path = entry.path();
-                if path.is_dir() && path.file_name().map_or(false, |n| n.to_string_lossy().starts_with("extract-")) {
-                    let _ = std::fs::remove_dir_all(&path);
-                }
+    // Only remove directories old enough that no other running instance can
+    // still be using them.  Scripts use /tmp/aml-flash-tool-* and
+    // /tmp/aml-adnl-*; the Rust unpacker uses <cache>/extract-*.
+    let mut search_dirs = vec![base];
+    let system_tmp = PathBuf::from("/tmp");
+    if !search_dirs.iter().any(|p| p == &system_tmp) {
+        search_dirs.push(system_tmp);
+    }
+
+    let max_age = std::time::Duration::from_secs(60 * 60);
+    let now = std::time::SystemTime::now();
+
+    for dir in search_dirs {
+        let Ok(entries) = std::fs::read_dir(&dir) else {
+            continue;
+        };
+        for entry in entries.flatten() {
+            let path = entry.path();
+            if !path.is_dir() {
+                continue;
+            }
+            let Some(name) = path.file_name().map(|n| n.to_string_lossy()) else {
+                continue;
+            };
+            let is_ours = name.starts_with("extract-")
+                || name.starts_with("aml-flash-tool-")
+                || name.starts_with("aml-adnl-");
+            if !is_ours {
+                continue;
+            }
+            let old = path
+                .metadata()
+                .ok()
+                .and_then(|m| m.modified().ok())
+                .and_then(|t| now.duration_since(t).ok())
+                .map(|age| age > max_age)
+                .unwrap_or(false);
+            if old {
+                let _ = std::fs::remove_dir_all(&path);
             }
         }
     }
@@ -99,7 +131,7 @@ fn parse_image_output(tmp_dir: &Path) -> Result<ImageInfo, String> {
     })
 }
 
-fn extract_value<'a>(line: &'a str, key: &str) -> Option<String> {
+fn extract_value(line: &str, key: &str) -> Option<String> {
     let pos = line.find(key)?;
     let after_key = &line[pos + key.len()..];
     let start = after_key.find('"')? + 1;
@@ -107,7 +139,6 @@ fn extract_value<'a>(line: &'a str, key: &str) -> Option<String> {
     Some(after_key[start..start + end].to_string())
 }
 
-#[allow(dead_code)]
 pub fn cleanup_tmp(tmp_dir: &Path) {
     let _ = std::fs::remove_dir_all(tmp_dir);
 }
@@ -155,6 +186,14 @@ where F: Fn(u32, String),
             continue;
         }
 
+        // Start each candidate from a clean directory so leftovers from a
+        // failed packer cannot make the next attempt look successful.
+        let _ = std::fs::remove_dir_all(&tmp_dir);
+        if let Err(e) = std::fs::create_dir_all(&tmp_dir) {
+            last_err = format!("Failed to reset tmp dir {tmp_dir:?}: {e}");
+            continue;
+        }
+
         let mut child = match std::process::Command::new(packer)
             .arg("-d")
             .arg(img_path)
@@ -193,7 +232,12 @@ where F: Fn(u32, String),
         let cfg_exists = cfg_path.exists();
 
         if exit_ok && cfg_exists {
-            return parse_image_output(&tmp_dir);
+            // Only image.cfg / platform.conf are needed here: the burn scripts
+            // unpack the image themselves, so drop the (possibly multi-GB)
+            // extracted copy right away instead of leaking it until next start.
+            let result = parse_image_output(&tmp_dir);
+            cleanup_tmp(&tmp_dir);
+            return result;
         }
 
         let detail = if !exit_ok {
@@ -204,6 +248,7 @@ where F: Fn(u32, String),
         last_err = format!("{} failed. {detail}", packer.display());
     }
 
+    cleanup_tmp(&tmp_dir);
     Err(last_err)
 }
 
@@ -225,7 +270,7 @@ where
 
     let f = std::cell::RefCell::new(Some(on_complete));
     let p = std::cell::RefCell::new(Some(on_progress));
-    let _ = glib::idle_add_local(move || {
+    let _ = glib::timeout_add_local(std::time::Duration::from_millis(50), move || {
         match rx.try_recv() {
             Ok(UnpackMsg::Progress { item, name }) => {
                 if let Some(ref cb) = *p.borrow() {

@@ -2,10 +2,12 @@ use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(default)]
 pub struct AppConfig {
     pub recent_images: Vec<String>,
     pub window_width: i32,
     pub window_height: i32,
+    pub window_maximized: bool,
     pub last_erase_flash: bool,
     pub last_erase_bootloader: bool,
     pub last_reset_after_burn: bool,
@@ -21,6 +23,7 @@ impl Default for AppConfig {
             recent_images: Vec::new(),
             window_width: 960,
             window_height: 720,
+            window_maximized: false,
             last_erase_flash: false,
             last_erase_bootloader: false,
             last_reset_after_burn: true,

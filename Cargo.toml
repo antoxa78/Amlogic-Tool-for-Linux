@@ -1,6 +1,6 @@
 [package]
 name = "aml-flash-tool"
-version = "1.0.5"
+version = "1.0.7"
 edition = "2021"
 description = "Amlogic USB Burning Tool GUI - Flash firmware to Amlogic Devices"
 authors = ["Anton <anton.b1978@gmail.com>"]
@@ -22,10 +22,11 @@ glib-build-tools = "0.20"
 
 [package.metadata.deb]
 maintainer = "Anton <anton.b1978@gmail.com>"
+recommends = "pv"
 assets = [
     ["target/release/aml-flash-tool", "usr/bin/", "755"],
     ["assets/aml-flash-tool.desktop", "usr/share/applications/", "644"],
-    ["assets/aml-flash-tool.png", "usr/share/icons/hicolor/scalable/apps/", "644"],
+    ["assets/aml-flash-tool.png", "usr/share/icons/hicolor/1024x1024/apps/", "644"],
     ["assets/99-amlogic-flash.rules", "lib/udev/rules.d/", "644"],
     # Bundled tools - shell scripts
     ["tools/aml_flash_tool.sh", "usr/lib/amlogicburn/tools/", "755"],
@@ -38,9 +39,6 @@ assets = [
     ["tools/linux-x86/update_khadas", "usr/lib/amlogicburn/tools/linux-x86/", "755"],
     ["tools/linux-x86/aml_image_v2_packer_khadas", "usr/lib/amlogicburn/tools/linux-x86/", "755"],
     ["tools/linux-x86/aml_update.app", "usr/lib/amlogicburn/tools/linux-x86/", "755"],
-    # Bundled tools - binaries (linux-arm)
-    ["tools/linux-arm/update", "usr/lib/amlogicburn/tools/linux-arm/", "755"],
-    ["tools/linux-arm/aml_image_v2_packer", "usr/lib/amlogicburn/tools/linux-arm/", "755"],
     # Bundled tools - ADNL
     ["tools/adnl/adnl", "usr/lib/amlogicburn/tools/adnl/", "755"],
     ["tools/adnl/adnl_burn_pkg", "usr/lib/amlogicburn/tools/adnl/", "755"],
@@ -50,6 +48,7 @@ assets = [
     ["tools/adnl/usb_flow/libaml_usb_flow.so", "usr/lib/amlogicburn/tools/adnl/usb_flow/", "755"],
     ["tools/adnl/usb_flow/libamlfastboot.so", "usr/lib/amlogicburn/tools/adnl/usb_flow/", "755"],
     ["tools/adnl/usb_flow/liblua53.so", "usr/lib/amlogicburn/tools/adnl/usb_flow/", "755"],
+    ["tools/adnl/usb_flow/usb_flow.aml", "usr/lib/amlogicburn/tools/adnl/usb_flow/", "644"],
     # Bundled tools - datas
     ["tools/datas/usbbl2runpara_ddrinit.bin", "usr/lib/amlogicburn/tools/datas/", "644"],
     ["tools/datas/usbbl2runpara_runfipimg.bin", "usr/lib/amlogicburn/tools/datas/", "644"],

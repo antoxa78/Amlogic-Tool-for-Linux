@@ -196,5 +196,8 @@ impl BurnProcess {
             }
         }
         let _ = self.child.kill();
+        // Reap the child so it does not linger as a zombie.
+        let _ = self.child.wait();
+        self.done = true;
     }
 }

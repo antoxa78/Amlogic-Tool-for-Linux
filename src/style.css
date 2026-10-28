@@ -1,375 +1,196 @@
-/* ── Status bar ── */
-.statusbar {
-    background-color: shade(@theme_bg_color, 0.92);
-    border-top: 1px solid @borders;
-    padding: 3px 10px;
+/* Amlogic USB Burning Tool — app stylesheet.
+ * Built on libadwaita named colors so it follows light/dark mode and accent
+ * color automatically. Window-control tweaks live in main.rs. */
+
+/* ── Device list card ── */
+.device-card {
+    padding: 0;
 }
 
-.statusbar label {
+.device-card columnview {
+    background: transparent;
+}
+
+.device-card columnview > header > row > cell,
+.device-card columnview columnheader button {
+    font-weight: 600;
     font-size: 0.85em;
-    color: alpha(@theme_fg_color, 0.8);
+    padding: 8px 12px;
 }
 
-/* ── Image bar (top of bottom area) ── */
-.imagebar {
-    background-color: shade(@theme_bg_color, 0.97);
-    border-bottom: 1px solid @borders;
-    padding: 6px 12px;
+.device-card columnview > listview > row {
+    padding: 2px 0;
 }
 
-.imagebar label {
-    font-weight: 500;
+.device-card columnview > listview > row:not(:last-child) {
+    border-bottom: 1px solid alpha(currentColor, 0.08);
 }
 
-/* ── Progress bars ── */
-progressbar trough {
-    min-height: 14px;
-    border-radius: 7px;
-    background-color: shade(@theme_bg_color, 0.82);
-    border: 1px solid @borders;
+.device-id {
+    font-family: monospace;
+    font-size: 0.95em;
 }
 
-progressbar progress {
-    border-radius: 6px;
-    background: linear-gradient(
-        135deg,
-        mix(@theme_selected_bg_color, @theme_fg_color, 0.15),
-        @theme_selected_bg_color
-    );
-    transition: 200ms ease-in-out;
+/* ── Device status progress bars ── */
+.device-card progressbar trough,
+.device-card progressbar progress {
+    min-height: 18px;
+    border-radius: 9px;
 }
 
-progressbar text {
+.device-card progressbar text {
     font-size: 0.8em;
     font-weight: 600;
-}
-
-/* ── ColumnView progress bars (taller for device list) ── */
-columnview progressbar trough {
-    min-height: 20px;
-}
-
-columnview progressbar progress {
-    border-radius: 4px;
 }
 
 .status-ready progress {
-    background: shade(@theme_bg_color, 0.7);
+    background-color: transparent;
 }
 
 .status-burning progress {
-    background: linear-gradient(
-        135deg,
-        mix(@theme_selected_bg_color, @theme_fg_color, 0.15),
-        @theme_selected_bg_color
-    );
+    background-color: @accent_bg_color;
 }
 
 .status-success progress {
-    background: linear-gradient(135deg, mix(#33d17a, #26a269, 0.3), #33d17a);
+    background-color: @success_bg_color;
 }
 
 .status-error progress {
-    background: linear-gradient(135deg, mix(#e66100, #c64600, 0.3), #e66100);
+    background-color: @error_bg_color;
 }
 
-/* ── Log text view ── */
-.log-view {
-    font-family: "JetBrains Mono", "Fira Code", "Cascadia Code", monospace;
-    font-size: 0.85em;
-    background-color: shade(@theme_bg_color, 0.97);
-    border-radius: 4px;
-    padding: 8px;
-    border: 1px solid alpha(@borders, 0.3);
+.status-error text {
+    color: @error_color;
 }
 
-/* ── ColumnView headers ── */
-columnview columnheader button {
-    font-weight: 600;
-    font-size: 0.85em;
-    padding: 6px 12px;
-    background-color: shade(@theme_bg_color, 0.95);
-    border-bottom: 2px solid alpha(@theme_selected_bg_color, 0.3);
-    transition: background-color 150ms ease;
+/* ── Settings side panel (compact, fits 1366×768) ── */
+.settings-panel {
+    background-color: @window_bg_color;
 }
 
-columnview columnheader button:hover {
-    background-color: shade(@theme_bg_color, 0.88);
+.compact-panel > scrolledwindow > viewport > clamp > box {
+    margin: 10px 12px 12px 12px;
+    border-spacing: 12px;
 }
 
-/* ── ColumnView rows ── */
-columnview row {
-    border-bottom: 1px solid alpha(@borders, 0.3);
-    padding: 3px 0;
-    transition: background-color 120ms ease;
+.compact-panel preferencesgroup > box {
+    border-spacing: 4px;
 }
 
-columnview row:nth-child(even) {
-    background-color: alpha(@theme_bg_color, 0.3);
+.compact-panel preferencesgroup > box > box.header:not(.single-line) {
+    margin-bottom: 2px;
 }
 
-columnview row:selected {
-    background-color: alpha(@theme_selected_bg_color, 0.15);
-}
-
-columnview row:selected label {
-    color: @theme_fg_color;
-}
-
-columnview row:hover {
-    background-color: alpha(@theme_selected_bg_color, 0.08);
-}
-
-columnview row label {
+.compact-panel preferencesgroup > box > box.header .title {
     font-size: 0.9em;
 }
 
-/* ── Buttons ── */
-button.suggested-action {
-    font-weight: 600;
-    border-radius: 6px;
-    padding: 6px 20px;
-    min-width: 90px;
-    transition: all 150ms ease;
+.compact-panel row > box.header {
+    min-height: 36px;
+    margin-left: 10px;
+    margin-right: 8px;
 }
 
-button.suggested-action:hover {
-    box-shadow: 0 1px 4px alpha(@theme_selected_bg_color, 0.3);
+.compact-panel row > box.header > box.title {
+    margin-top: 3px;
+    margin-bottom: 3px;
 }
 
-button:not(.suggested-action):not(.image-button):not(.titlebutton) {
-    border-radius: 6px;
-    padding: 6px 20px;
-    min-width: 90px;
-    transition: all 120ms ease;
+.compact-panel row.expander list.nested > row > box.header {
+    min-height: 32px;
 }
 
-/* ── Switches ── */
-switch {
-    font-size: 0.85em;
+.compact-panel row.expander list.nested > row label.title {
+    font-size: 0.92em;
 }
 
-/* ── DropDown ── */
-dropdown {
-    border-radius: 6px;
-    min-width: 150px;
+.row-summary {
+    margin-right: 2px;
 }
 
-/* ── Status Page (empty device state) ── */
-statuspage {
-    padding: 60px 50px;
+.partitions-list {
+    background: none;
 }
 
-statuspage label.title {
-    font-size: 1.4em;
-    font-weight: 600;
-    margin-top: 16px;
-}
-
-statuspage label.description {
-    font-size: 0.95em;
-    color: alpha(@theme_fg_color, 0.6);
-    margin-top: 6px;
-}
-
-/* ── Separators ── */
-separator {
-    margin: 4px 0;
-}
-
-/* ── ScrolledWindow ── */
-scrolledwindow {
-    border-radius: 6px;
-}
-
-scrolledwindow.frame {
-    border: 1px solid @borders;
-}
-
-/* ── Config panel (right side) ── */
-preferencespage {
-    background: shade(@theme_base_color, 0.98);
-}
-
-preferencespage > scrolledwindow > viewport > clamp > box {
-    margin: 0;
-    padding: 8px 4px;
-}
-
-preferencesgroup {
-    background: @theme_base_color;
-    margin-bottom: 8px;
-}
-
-preferencesgroup > box > label {
-    font-weight: 600;
-    font-size: 0.8em;
-    padding: 8px 12px 4px;
-    color: alpha(@theme_fg_color, 0.6);
-    text-transform: uppercase;
-    letter-spacing: 0.8px;
-}
-
-/* ── ActionRow ── */
-actionrow {
-    border-radius: 6px;
-    margin: 0 4px;
-    padding: 4px 10px;
-    transition: background-color 120ms ease;
-}
-
-actionrow:hover {
-    background-color: alpha(@theme_selected_bg_color, 0.06);
-}
-
-actionrow:first-child {
-    margin-top: 2px;
-}
-
-actionrow:last-child {
-    margin-bottom: 4px;
-}
-
-/* ── Paned handle ── */
-paned > separator {
-    min-width: 4px;
-    min-height: 4px;
-    background-color: @borders;
-    transition: background-color 150ms ease;
-}
-
-paned > separator:hover {
-    background-color: @theme_selected_bg_color;
-}
-
-/* ── Burning percentage label ── */
-.burning-pct {
-    font-weight: 700;
-    font-size: 0.95em;
-    color: @theme_selected_bg_color;
-    margin: 0 4px;
-}
-
-/* ── Header bar ── */
-headerbar {
-    padding: 2px 8px;
-    border-bottom: 1px solid @borders;
-}
-
-headerbar button {
-    border-radius: 6px;
-}
-
-/* ── Window title buttons ── */
-.titlebutton,
-windowcontrols button,
-headerbar button.titlebutton,
-windowcontrols button.minimize,
-windowcontrols button.maximize,
-windowcontrols button.close {
-    padding: 0;
-    margin: 0;
-    border-style: none;
-    min-width: 18px;
-    min-height: 18px;
-}
-
-windowcontrols button image,
-windowcontrols button image:dir(ltr),
-windowcontrols button image:dir(rtl) {
-    padding: 0;
-    margin: 0;
-    border-style: none;
-}
-
-windowcontrols,
-windowcontrols.start,
-windowcontrols.end,
-headerbar windowcontrols {
-    border-spacing: 0;
-    margin: 0;
-    padding: 0;
-}
-
-/* ── Header menu buttons ── */
-.header-menu-button {
-    padding: 1px 8px;
-    font-size: 0.82em;
-    font-weight: 500;
+.partitions-list > row {
+    padding: 0 2px;
     min-height: 0;
 }
 
-/* ── Menu popover ── */
-.menu {
-    min-width: 60px;
+.partitions-list checkbutton {
+    padding: 4px 2px;
 }
 
-modelbutton {
-    padding: 4px 12px;
-    min-height: 26px;
+button.small-button {
+    padding: 2px 8px;
+    min-height: 24px;
+    font-size: 0.9em;
 }
 
-/* ── Bottom bar Start/Stop button spacing ── */
-.imagebar > button {
-    margin-left: 6px;
+.row-summary.accent {
+    opacity: 1;
+    color: @accent_color;
+    font-weight: 600;
 }
 
-/* ── Device list empty state transition ── */
-stack {
-    transition: opacity 200ms ease;
+/* ── Paned handles ── */
+paned > separator {
+    background-color: @borders;
+    min-width: 1px;
+    min-height: 1px;
 }
 
-/* ── Scrollbar ── */
-scrollbar {
-    background: none;
-    border: none;
+/* ── Log pane ── */
+.log-pane {
+    background-color: @view_bg_color;
+    border-top: 1px solid alpha(currentColor, 0.08);
 }
 
-scrollbar trough {
-    border-radius: 4px;
-    min-width: 6px;
+.log-header {
+    padding: 4px 6px 4px 14px;
+    border-bottom: 1px solid alpha(currentColor, 0.08);
+}
+
+.log-view,
+.log-view text {
+    background-color: transparent;
+    font-family: "JetBrains Mono", "Fira Code", "Cascadia Code", monospace;
+    font-size: 0.85em;
+}
+
+/* ── Bottom action bar ── */
+.bottom-bar {
+    padding: 8px 12px;
+}
+
+.bottom-bar .status-text {
+    opacity: 0.75;
+}
+
+.bar-progress trough,
+.bar-progress progress {
     min-height: 6px;
-    background: alpha(@theme_fg_color, 0.08);
-}
-
-scrollbar slider {
     border-radius: 3px;
-    min-width: 6px;
-    min-height: 6px;
-    background: alpha(@theme_fg_color, 0.25);
-    transition: background-color 150ms ease;
 }
 
-scrollbar slider:hover {
-    background: alpha(@theme_fg_color, 0.4);
+.bar-progress text {
+    font-size: 0.75em;
+    font-weight: 600;
 }
 
-scrollbar slider:active {
-    background: @theme_selected_bg_color;
+.action-button {
+    min-width: 110px;
+    padding: 6px 18px;
+    font-weight: 600;
 }
 
-/* ── Hide vertical scrollbar in device ColumnView ── */
-columnview scrollbar.vertical {
-    min-width: 0;
-    max-width: 0;
-    padding: 0;
-    margin: 0;
-    opacity: 0;
+/* ── Drag-and-drop feedback ── */
+window:drop(active) .bottom-bar {
+    background-color: alpha(@accent_bg_color, 0.15);
 }
 
-/* ── Partition popover list ── */
-.partitions-list {
-    background: transparent;
-    border-radius: 4px;
-}
-
-.partitions-list row {
-    padding: 2px 4px;
-    border-bottom: none;
-    background: transparent;
-}
-
-.partitions-list row:hover {
-    background-color: alpha(@theme_selected_bg_color, 0.08);
-    border-radius: 4px;
+/* ── Empty device state ── */
+button.pill.small-pill {
+    padding: 6px 20px;
+    min-height: 0;
 }

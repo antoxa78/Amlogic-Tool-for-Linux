@@ -44,15 +44,18 @@ pub fn scan_devices(tools_dir: &Path) -> Vec<String> {
 
     if devices.is_empty() {
         if let Ok(lsusb) = std::process::Command::new("lsusb")
-            .output()
-            .and_then(|o| Ok(String::from_utf8_lossy(&o.stdout).to_string()))
+            .output().map(|o| String::from_utf8_lossy(&o.stdout).to_string())
         {
             for line in lsusb.lines() {
                 if line.contains("Amlogic") || line.contains("1b8e") {
                     let parts: Vec<&str> = line.split_whitespace().collect();
                     if parts.len() >= 6 {
-                        let id = format!("{}:{}", parts[1], parts[3]);
-                        let name = parts[6..].join(" ");
+                        let id = format!("{}:{}", parts[1], parts[3].trim_end_matches(':'));
+                        let name = parts
+                            .get(6..)
+                            .map(|p| p.join(" "))
+                            .filter(|n| !n.is_empty())
+                            .unwrap_or_else(|| "Amlogic device".into());
                         devices.push(format!("{id} ({name}) | Connected | 0%"));
                     }
                 }
@@ -73,7 +76,7 @@ pub fn scan_devices_background(
         let _ = tx.send(result);
     });
     let f = std::cell::RefCell::new(Some(on_result));
-    let _ = glib::idle_add_local(move || {
+    let _ = glib::timeout_add_local(std::time::Duration::from_millis(50), move || {
         match rx.try_recv() {
             Ok(devices) => {
                 if let Some(f) = f.borrow_mut().take() {
